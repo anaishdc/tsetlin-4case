@@ -68,9 +68,11 @@ int main(int argc, char** argv) {
     if (argc > 5) S = atof(argv[5]);
     if (argc > 6) a = atof(argv[6]);
     if (argc > 7) N = atoi(argv[7]);
+    double alphaMin = argc > 8 ? atof(argv[8]) : 0.0; // seuil de filtrage post-hoc des clauses faibles
 
     cout << which << " (stumps aleatoires, CHAQUE clause = 1 round AdaBoost independant) : M=" << M
-         << " total/clause=" << total << " S=" << S << " a=" << a << " N=" << N << "\n" << flush;
+         << " total/clause=" << total << " S=" << S << " a=" << a << " N=" << N
+         << " alphaMin=" << alphaMin << "\n" << flush;
 
     Params p = {S, S, S, S, a, a};
     uniform_int_distribution<int> featDist(0, n - 1);
@@ -132,21 +134,24 @@ int main(int argc, char** argv) {
         }
 
         int correct = 0;
+        int nKept = 0;
         for (auto& ex : testRawAll) {
             double score = 0;
             for (size_t m = 0; m < clauses.size(); m++) {
                 if (!clauses[m].applies(ex.x) || clauses[m].isEmpty()) continue;
+                if (fabs(alphas[m]) < alphaMin) continue; // filtre post-hoc : clause trop faible, on l'ignore
                 int o = clauses[m].clause.output(ex.x);
                 score += alphas[m] * (2.0 * o - 1.0);
             }
             int pred = score > 0 ? 1 : 0;
             if (pred == ex.y) correct++;
         }
+        for (size_t m = 0; m < clauses.size(); m++) if (!clauses[m].isEmpty() && fabs(alphas[m]) >= alphaMin) nKept++;
         accs[run] = 100.0 * correct / testRawAll.size();
 
         long totalLit = 0;
         for (auto& c : clauses) for (int i = 0; i < c.clause.n; i++) { if (c.clause.v[i].included()) totalLit++; if (c.clause.vbar[i].included()) totalLit++; }
-        cout << "  run " << run << " : acc=" << accs[run] << "%  complexite=" << totalLit << "\n" << flush;
+        cout << "  run " << run << " : acc=" << accs[run] << "%  complexite=" << totalLit << "  clausesGardees=" << nKept << "/" << clauses.size() << "\n" << flush;
     }
     double mean = 0; for (double a2 : accs) mean += a2; mean /= nbRuns;
     double var = 0; for (double a2 : accs) var += (a2-mean)*(a2-mean); var /= nbRuns;
