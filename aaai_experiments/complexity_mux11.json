@@ -1,0 +1,76 @@
+{
+  "cart": {
+    "mux11": [
+      {
+        "K": 2,
+        "acc": 56.44,
+        "total_complexity": 1,
+        "decision_complexity": 1.0
+      },
+      {
+        "K": 4,
+        "acc": 56.48,
+        "total_complexity": 3,
+        "decision_complexity": 1.7576
+      },
+      {
+        "K": 8,
+        "acc": 62.519999999999996,
+        "total_complexity": 7,
+        "decision_complexity": 2.1356
+      },
+      {
+        "K": 16,
+        "acc": 71.0,
+        "total_complexity": 15,
+        "decision_complexity": 2.7508
+      },
+      {
+        "K": 32,
+        "acc": 81.32000000000001,
+        "total_complexity": 31,
+        "decision_complexity": 4.6406
+      },
+      {
+        "K": 64,
+        "acc": 95.6,
+        "total_complexity": 63,
+        "decision_complexity": 5.6412
+      }
+    ]
+  },
+  "xgboost": {
+    "mux11": [
+      {
+        "n_estimators": 1,
+        "acc": 66.08000000000001,
+        "total_complexity": 15,
+        "decision_complexity": 15.0
+      },
+      {
+        "n_estimators": 4,
+        "acc": 74.98,
+        "total_complexity": 60,
+        "decision_complexity": 60.0
+      },
+      {
+        "n_estimators": 16,
+        "acc": 94.34,
+        "total_complexity": 240,
+        "decision_complexity": 240.0
+      },
+      {
+        "n_estimators": 50,
+        "acc": 99.66000000000001,
+        "total_complexity": 750,
+        "decision_complexity": 750.0
+      },
+      {
+        "n_estimators": 100,
+        "acc": 100.0,
+        "total_complexity": 1500,
+        "decision_complexity": 1500.0
+      }
+    ]
+  }
+}

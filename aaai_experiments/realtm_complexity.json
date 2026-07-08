@@ -1,0 +1,14 @@
+{
+  "iris": {
+    "acc": 96.66666666666667,
+    "total_complexity": 1095
+  },
+  "xor": {
+    "acc": 88.64,
+    "total_complexity": 50
+  },
+  "digits": {
+    "acc": 97.22222222222221,
+    "total_complexity": 20483
+  }
+}

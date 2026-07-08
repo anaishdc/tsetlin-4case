@@ -1,0 +1,222 @@
+{
+  "cart": {
+    "iris": [
+      {
+        "K": 2,
+        "acc": 66.66666666666666,
+        "total_complexity": 1,
+        "decision_complexity": 1.0
+      },
+      {
+        "K": 4,
+        "acc": 93.33333333333333,
+        "total_complexity": 3,
+        "decision_complexity": 2.0
+      },
+      {
+        "K": 8,
+        "acc": 93.33333333333333,
+        "total_complexity": 7,
+        "decision_complexity": 3.0
+      },
+      {
+        "K": 16,
+        "acc": 93.33333333333333,
+        "total_complexity": 11,
+        "decision_complexity": 3.5999999999999996
+      },
+      {
+        "K": 32,
+        "acc": 93.33333333333333,
+        "total_complexity": 11,
+        "decision_complexity": 3.5999999999999996
+      }
+    ],
+    "xor": [
+      {
+        "K": 2,
+        "acc": 50.5,
+        "total_complexity": 1,
+        "decision_complexity": 1.0
+      },
+      {
+        "K": 4,
+        "acc": 50.44,
+        "total_complexity": 3,
+        "decision_complexity": 1.7654
+      },
+      {
+        "K": 8,
+        "acc": 51.85999999999999,
+        "total_complexity": 7,
+        "decision_complexity": 2.0028
+      },
+      {
+        "K": 16,
+        "acc": 51.66,
+        "total_complexity": 15,
+        "decision_complexity": 2.0968
+      },
+      {
+        "K": 32,
+        "acc": 64.16,
+        "total_complexity": 31,
+        "decision_complexity": 2.9128
+      }
+    ],
+    "digits": [
+      {
+        "K": 2,
+        "acc": 16.38888888888889,
+        "total_complexity": 1,
+        "decision_complexity": 1.0
+      },
+      {
+        "K": 4,
+        "acc": 36.666666666666664,
+        "total_complexity": 3,
+        "decision_complexity": 2.136111111111111
+      },
+      {
+        "K": 8,
+        "acc": 54.44444444444444,
+        "total_complexity": 7,
+        "decision_complexity": 3.4638888888888886
+      },
+      {
+        "K": 16,
+        "acc": 76.94444444444444,
+        "total_complexity": 15,
+        "decision_complexity": 4.805555555555555
+      },
+      {
+        "K": 32,
+        "acc": 84.44444444444444,
+        "total_complexity": 31,
+        "decision_complexity": 5.716666666666667
+      },
+      {
+        "K": 64,
+        "acc": 87.5,
+        "total_complexity": 63,
+        "decision_complexity": 6.541666666666667
+      }
+    ]
+  },
+  "xgboost": {
+    "iris": [
+      {
+        "n_estimators": 1,
+        "acc": 93.33333333333333,
+        "total_complexity": 6,
+        "decision_complexity": 2.0
+      },
+      {
+        "n_estimators": 4,
+        "acc": 93.33333333333333,
+        "total_complexity": 26,
+        "decision_complexity": 8.666666666666666
+      },
+      {
+        "n_estimators": 16,
+        "acc": 93.33333333333333,
+        "total_complexity": 121,
+        "decision_complexity": 40.333333333333336
+      },
+      {
+        "n_estimators": 50,
+        "acc": 93.33333333333333,
+        "total_complexity": 393,
+        "decision_complexity": 131.0
+      },
+      {
+        "n_estimators": 100,
+        "acc": 93.33333333333333,
+        "total_complexity": 731,
+        "decision_complexity": 243.66666666666666
+      },
+      {
+        "n_estimators": 300,
+        "acc": 93.33333333333333,
+        "total_complexity": 1761,
+        "decision_complexity": 587.0
+      }
+    ],
+    "xor": [
+      {
+        "n_estimators": 1,
+        "acc": 49.4,
+        "total_complexity": 3,
+        "decision_complexity": 3.0
+      },
+      {
+        "n_estimators": 4,
+        "acc": 49.88,
+        "total_complexity": 12,
+        "decision_complexity": 12.0
+      },
+      {
+        "n_estimators": 16,
+        "acc": 49.94,
+        "total_complexity": 48,
+        "decision_complexity": 48.0
+      },
+      {
+        "n_estimators": 50,
+        "acc": 49.3,
+        "total_complexity": 150,
+        "decision_complexity": 150.0
+      },
+      {
+        "n_estimators": 100,
+        "acc": 60.940000000000005,
+        "total_complexity": 300,
+        "decision_complexity": 300.0
+      },
+      {
+        "n_estimators": 300,
+        "acc": 91.02,
+        "total_complexity": 900,
+        "decision_complexity": 900.0
+      }
+    ],
+    "digits": [
+      {
+        "n_estimators": 1,
+        "acc": 82.22222222222221,
+        "total_complexity": 60,
+        "decision_complexity": 6.0
+      },
+      {
+        "n_estimators": 4,
+        "acc": 90.83333333333333,
+        "total_complexity": 256,
+        "decision_complexity": 25.6
+      },
+      {
+        "n_estimators": 16,
+        "acc": 94.72222222222221,
+        "total_complexity": 981,
+        "decision_complexity": 98.1
+      },
+      {
+        "n_estimators": 50,
+        "acc": 96.66666666666667,
+        "total_complexity": 2613,
+        "decision_complexity": 261.3
+      },
+      {
+        "n_estimators": 100,
+        "acc": 97.5,
+        "total_complexity": 3793,
+        "decision_complexity": 379.3
+      },
+      {
+        "n_estimators": 300,
+        "acc": 97.5,
+        "total_complexity": 5513,
+        "decision_complexity": 551.3
+      }
+    ]
+  }
+}

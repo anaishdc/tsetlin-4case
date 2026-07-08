@@ -1,0 +1,380 @@
+\documentclass[12pt,a4paper]{article}
+
+% --- Encodage et langue ---
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+
+% --- Maths ---
+\usepackage{amsmath,amssymb,amsthm}
+
+% --- Mise en page ---
+\usepackage[top=2.5cm,bottom=2.5cm,left=2.8cm,right=2.8cm]{geometry}
+\usepackage{parskip}
+
+% --- Tableaux ---
+\usepackage{booktabs}
+\usepackage{array}
+
+% --- Couleurs / liens ---
+\usepackage{xcolor}
+\usepackage{hyperref}
+\hypersetup{colorlinks=true, linkcolor=blue!60!black, citecolor=blue!60!black}
+
+% --- Environnements théorème ---
+\newtheorem{theorem}{Théorème}[section]
+\newtheorem{lemma}[theorem]{Lemme}
+\theoremstyle{remark}
+\newtheorem{remark}{Remarque}[section]
+
+% --- Macros ---
+\newcommand{\Sstar}{S^{*}}
+
+% ======================================================
+\begin{document}
+% ======================================================
+
+\begin{center}
+  {\LARGE\bfseries Rapport de session}\\[6pt]
+  {\large Extension multi-clause (Option 1) et limites du seuil $\Sstar$}\\[12pt]
+  {\normalsize Validation empirique sur jeux de données synthétiques et réels}
+\end{center}
+
+\vspace{1em}
+\hrule
+\vspace{1.5em}
+
+\tableofcontents
+
+\newpage
+
+% ======================================================
+\section{Objectif de la session}
+% ======================================================
+
+Étendre la preuve de convergence existante (chaîne de Markov, 1 clause, cas
+IDENTITY/NOT, \texttt{convergence\_sans\_bruit.tex}) à un réseau
+\textbf{multi-clause}, selon la piste de partition fixe du domaine : la
+partition est décidée avant l'apprentissage. L'espoir initial était que
+chaque clause redevienne un sous-problème déjà couvert par la preuve
+existante --- \textbf{mais attention, ça ne réduit pas l'entrée à 1 bit} :
+une clause garde toutes ses $n$ features actives après masquage, seules les
+features utilisées par le \emph{routage} sont gelées. Ce qui se réduit, dans
+le meilleur cas, c'est le nombre de \textbf{littérales réellement
+pertinentes} parmi ces features actives (le reste étant non pertinent, géré
+par le même mécanisme d'annulation que dans le théorème IDENTITY/NOT). Et ce
+n'est même pas garanti par construction : la section~\ref{sec:seuil-sstar}
+montre des feuilles qui ont besoin de deux littérales pertinentes --- hors
+du cadre du théorème actuel, qui ne couvre qu'une seule variable.
+
+Fichiers créés pendant la session :
+\begin{itemize}
+  \item \texttt{tsetlin\_engine\_multiclause.h} --- moteur multi-clause
+        (routeur, masquage, calibration, échantillonnage équilibré) ;
+  \item \texttt{validation\_multiclause.cpp} --- XOR et DNF synthétiques ;
+  \item \texttt{validation\_multiclause\_xor\_reel.cpp},
+        \texttt{validation\_multiclause\_reels.cpp},
+        \texttt{validation\_multiclause\_mnist.cpp} --- vrais jeux de
+        données (\texttt{data/}).
+\end{itemize}
+
+Le moteur 1-clause d'origine, \texttt{tsetlin\_engine\_4case.h}, n'a
+\textbf{jamais été modifié}.
+
+% ======================================================
+\section{Le routeur}
+% ======================================================
+
+Arbre de décision (CART simplifié) construit sur un batch $(x,y)$ séparé
+(phase de découverte), puis \textbf{gelé} : pendant l'apprentissage il ne
+prend que $x$ en entrée. Critère de split : impureté de Gini avec
+\textbf{lookahead à 2 niveaux} (évalue le meilleur split atteignable une
+fois la feature posée, pas seulement son gain immédiat) --- nécessaire pour
+détecter les interactions de type XOR, où aucune feature seule n'apporte de
+gain individuel.
+
+$K$ est un budget fixé à l'avance, pas une conséquence découverte
+automatiquement. Une tentative d'arrêter dynamiquement le découpage dès
+qu'une feuille est représentable par une seule clause (test à la Find-S) a
+été \textbf{abandonnée} : pour la classe des conjonctions, vérifier qu'une
+solution exacte existe est aussi difficile que la trouver --- ce test
+résolvait la formule cible en coulisses, et la clause n'avait alors plus
+qu'à reproduire une réponse déjà connue. C'est une erreur méthodologique
+réelle, détectée et corrigée en cours de session.
+
+% ======================================================
+\section{Résultats validés}
+% ======================================================
+
+Pour juger si une clause apporte une valeur réelle (et pas seulement le
+découpage), chaque test compare le réseau complet à un \textbf{baseline
+``routeur seul''} : le vote majoritaire de la feuille, sans aucun
+apprentissage par clause.
+
+\begin{center}
+\begin{tabular}{@{}llccc@{}}
+\toprule
+Cible & $K$ & accuracy & baseline (routeur seul) & écart \\
+\midrule
+XOR synthétique & 2 & 100\% & 50.0\% & \textbf{+50.0\%} \\
+XOR réel (40\% bruit train) & 2 & 100\% & 50.1\% & \textbf{+49.9\%} \\
+DNF synthétique (insuffisant) & 2 & 75.0--82.6\% & 68.8\% & +6.2 à +13.8\% \\
+DNF synthétique & 4 & 70.3--79.5\% & 73.0--75.0\% & $-4.7$ à $+4.5\%$ \\
+AND2 réel (insuffisant) & 1 & 25.0\% & 75.0\% & $\mathbf{-50.0\%}$ \\
+AND2 réel & 2 & 100\% & 75.0\% & \textbf{+25.0\%} \\
+Maj3 réel (insuffisant) & 2 & 50.7\% & 75.5\% & $\mathbf{-24.8\%}$ \\
+Maj3 réel & 5 & 100\% & 87.2\% & \textbf{+12.8\%} \\
+MNIST (chiffre 0)\footnotemark & 2 & 93.9\% & 90.3\% & +3.6\% \\
+MNIST (chiffre 0), $K$ croissant & 4--32 & 91.6--92.5\% & 90.3\% & $+1.3$ à $+2.2\%$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+\footnotetext{Pour MNIST, le rappel sur la classe rare passe de $0\%$ ($K=2$
+sans calibration) à $50.9\%$ ($K=2$, avec calibration $S/a$ +
+échantillonnage équilibré) puis redescend à $14.1\%$ quand $K=32$ (dilution
+du budget, cf. section~\ref{sec:seuil-sstar}). La colonne ``baseline'' pour
+MNIST est le baseline trivial (toujours prédire la classe majoritaire), pas
+le vote majoritaire par feuille --- non recalculé pour chaque $K$.}
+
+XOR est la preuve la plus propre : dans chaque feuille, le vote majoritaire
+est à $\sim$50\% (aucune majorité réelle), c'est la clause qui résout le bit
+restant. Le routeur décide \emph{où regarder} ; la clause \emph{répond}.
+
+Les lignes ``insuffisant'' (AND2 $K=1$, Maj3 $K=2$, DNF $K=2$) ne sont pas
+des échecs séparés : elles partagent toutes la même cause, développée en
+section~\ref{sec:seuil-sstar} --- au moins une feuille y apprend encore une
+conjonction de 2 littéraux ou plus, ce que le seuil $\Sstar$ ne couvre pas à
+40\% de bruit.
+
+% ======================================================
+\section{Bugs trouvés et corrigés}
+% ======================================================
+
+\begin{enumerate}
+  \item \textbf{Masquage des features de routage.} Une feature utilisée
+        pour atteindre une feuille devient constante dans cette feuille ; le
+        mécanisme d'annulation $+S/-S$ qui exclut normalement les
+        littérales non pertinentes ne s'applique plus. Sans correction, ces
+        features dérivent vers l'inclusion à tort (cassait XOR). Corrigé en
+        gelant ces automates à l'exclusion.
+  \item \textbf{Feuilles ``constante à 0''.} Un automate figé exclu donne
+        par défaut une sortie 1 (clause vide) ; une feuille qui doit
+        toujours répondre 0 ne peut pas être représentée en excluant tout.
+        Corrigé en forçant une littérale cohérente avec le chemin de
+        routage (toujours violée) plutôt que de tout exclure.
+  \item \textbf{Détection de pureté non tolérante au bruit.} Même défaut
+        que Find-S (zéro exception tolérée), mais ici sur un simple
+        comptage de fréquence --- donc corrigeable sans réintroduire la
+        circularité. Remplacé par un seuil tolérant au bruit (\texttt{noiseTol}).
+  \item \textbf{Routeur aveugle aux interactions (XOR réel).} Avec des
+        features parasites, un critère à 1 niveau choisit une colonne de
+        bruit au hasard plutôt que les vraies colonnes pertinentes (gain
+        individuel nul pour XOR). Corrigé par le lookahead à 2 niveaux.
+\end{enumerate}
+
+% ======================================================
+\section{Limites caractérisées (compromis réels, pas des bugs)}
+% ======================================================
+
+\subsection{Tension $S/a$ : vitesse de convergence vs. robustesse au bruit}
+
+Sur une feuille dont la fonction restante est un OU (non représentable par
+une seule clause), la clause converge vers le \textbf{ET le plus
+restrictif} plutôt que vers le repli optimal (clause vide) --- pire que le
+vote majoritaire. Mesuré directement sur le moteur 1-clause isolé : avec
+$S \geq a$, convergence vers le pire cas (50\% sur une cible OU à 2
+variables, contre 75\% pour la clause vide) ; avec $a > S$, convergence vers
+le bon repli --- mais cela casse la convergence du cas bien représentable
+(IDENTITY) à partir de $\sim$30--40\% de bruit.
+
+\textbf{Correction générale apportée :} calibration de $(S,a)$ \textbf{par
+feuille} (fonction \texttt{calibrateParams}), dérivée de la même analyse
+$p^+/p^-$ que le théorème de convergence IDENTITY
+(\texttt{convergence\_sans\_bruit.tex}). On mesure, pour chaque feuille, la
+feature active la plus déséquilibrée et on calibre le rapport $S/a$ au
+minimum nécessaire. Une bande de tolérance absorbe le bruit
+d'échantillonnage normal pour ne pas sur-réagir.
+
+\begin{remark}
+\texttt{flip(p)} sature à $p \geq 1$ : il faut donc \textbf{abaisser $S$}
+quand $a$ doit dominer, jamais pousser $a$ au-delà de 1 (sinon le rapport
+réel retombe à 1:1, sans effet).
+\end{remark}
+
+\subsection{Déséquilibre de classe / features quasi-constantes (MNIST)}
+
+Sur MNIST un-contre-tous (90\% non-cible / 10\% cible), le réseau ne prédit
+jamais la classe rare (rappel $=0\%$). Cause : 353 des 784 pixels sont
+quasi-toujours à 0 (fond d'image, indépendant du chiffre) --- même mécanisme
+que ci-dessus mais dans les données brutes, pas dans le routage.
+
+\textbf{Correction générale apportée :} un échantillonneur équilibré
+(\texttt{BalancedSampler}, présente les exemples positifs/négatifs 50/50
+pendant l'apprentissage, lu directement depuis les labels du jeu fourni,
+sans ratio supposé à l'avance), combiné à la calibration ci-dessus.
+Résultat : accuracy $90.3\% \to 93.9\%$, rappel $0\% \to 50.9\%$, avec les
+mêmes paramètres de base partout ($S=1$, $a=0.3$, jamais réglés à la main
+par jeu de données).
+
+\subsection{Le sampling équilibré peut nuire (AND2, Maj3)}
+
+Sur une cible AND2 ($x_1 \wedge x_2$, vraie 25\% du temps) avec 40\% de
+bruit sur le label : dans le sous-ensemble étiqueté ``oui'', les faux
+positifs sont \textbf{deux fois plus nombreux} que les vrais positifs,
+simplement parce que les vrais négatifs sont trois fois plus fréquents au
+départ. Forcer un tirage 50/50 amplifie l'exposition à ce bruit majoritaire
+au lieu de le diluer. Résultat avec $K=1$ : accuracy $25\%$ (pire que le
+hasard), clause vide.
+
+C'est l'\textbf{inverse exact} du problème précédent : là, équilibrer
+corrigeait un déséquilibre de \emph{features} ; ici, équilibrer un
+déséquilibre de \emph{classe} amplifie le bruit sur la classe rare.
+\textbf{Aucun correctif général trouvé cette session n'est gratuit.}
+
+% ======================================================
+\section{Découverte principale : le seuil $\Sstar$ ne couvre qu'une variable}
+\label{sec:seuil-sstar}
+% ======================================================
+
+En cherchant la cause profonde de la section précédente, un test décisif a
+été mené sur le moteur \textbf{1-clause d'origine, intact}, sans aucun ajout
+de cette session :
+
+\begin{center}
+\begin{tabular}{@{}lc@{}}
+\toprule
+Bruit (cible $x_1 \wedge x_2$, 2 littéraux) & exactitude \\
+\midrule
+30\% & 100\% \\
+35\% & 100\% \\
+\textbf{40\%} & \textbf{0\% (accuracy 25\%, casse net)} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Le moteur d'origine lui-même bascule entre 35\% et 40\% de bruit pour une
+conjonction de \textbf{deux} variables --- alors que le théorème de
+convergence IDENTITY ne couvre que les cibles à \textbf{une} variable. AND2
+et Maj3 ont justement $\sim$40\% de bruit dans leurs fichiers réels : ils
+tombent exactement dans la zone non couverte par la théorie actuelle.
+
+Confirmation croisée : AND2 avec $K=2$ (qui découpe sur $x_2$, réduisant
+chaque feuille à une seule variable pertinente) donne $100\%$ --- alors que
+$K=1$ (qui force la clause à apprendre la conjonction des deux variables
+directement) donne $25\%$. Le découpage n'aide pas par hasard : il
+\textbf{réduit le problème au régime que la théorie couvre déjà}.
+
+\begin{remark}
+Ce n'est pas un bug --- c'est une lacune non caractérisée de la théorie
+existante, qui explique d'un coup AND2, Maj3, et participe à la tension
+$S/a$ de la section précédente.
+\end{remark}
+
+\subsection{Généralisation du seuil à $m$ littéraux}
+
+Le théorème de convergence IDENTITY (avec bruit) ne couvre qu'une cible à
+\textbf{une} variable. On généralise ici au cas d'une conjonction de $m$
+littéraux positifs $x_1 \wedge \cdots \wedge x_m$, avec $x_i$ i.i.d.
+Bernoulli($c{=}0.5$) et bruit de label symétrique $b$ (comme dans
+\texttt{sampleLabeledBatch}). On reprend exactement le calcul $p^+/p^-$ du
+théorème existant, appliqué à l'automate $v[1]$ (par symétrie, identique
+pour $v[1..m]$).
+
+Pour $x_1=0$, la conjonction est toujours fausse, donc $y_{\text{vrai}}=0$ ;
+pour $x_1=1$, $y_{\text{vrai}}=1$ avec probabilité $\pi' = 2^{-(m-1)}$ (les
+$m-1$ autres littéraux doivent aussi être à 1). En notant $a$ le paramètre
+d'exclusion de l'engin (le $\alpha$ du théorème existant) :
+\begin{align*}
+p^+_{v[1]} &= P(x_1{=}0, y{=}0)\,S = \tfrac12(1-b)\,S, \\
+p^-_{v[1]} &= P(x_1{=}0, y{=}1)\,a + P(x_1{=}1, y{=}0)\,S
+            = \tfrac12 b\,a + \tfrac12\bigl[(1-\pi')(1-b)+\pi' b\bigr]S.
+\end{align*}
+La condition $\rho_{v[1]} = p^+_{v[1]}/p^-_{v[1]} > 1$ se simplifie (mêmes
+étapes que pour le cas $m=1$) en :
+\[
+  S\,\pi'\,(1-2b) > b\,a
+  \quad\Longleftrightarrow\quad
+  \boxed{\;\Sstar(m,b) = \dfrac{a\,b\,2^{\,m-1}}{1-2b}\;}
+\]
+Le seuil critique de bruit $b^*(m)$ --- le point où $\Sstar(m,b^*)=1$, donc
+où même $S=1$ (le maximum) ne suffit plus --- vaut :
+\[
+  b^*(m) = \dfrac{1}{2 + a\cdot 2^{\,m-1}}.
+\]
+
+\subsubsection*{Validation empirique (trois points indépendants, $a=0.3$)}
+
+\begin{center}
+\begin{tabular}{@{}cccl@{}}
+\toprule
+$m$ & $b^*$ prédit & Observé (moteur 1-clause intact) & Source \\
+\midrule
+1 ($a=1$) & 33.3\% & 33.3\% & déjà publié (Test A) \\
+2 & 38.5\% & marche à 35\%, casse à 40\% & AND2 (cette session) \\
+3 & \textbf{31.25\%} & marche à 30\%, transition à 31\%, cassé à 32\% & testé pour valider la formule \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Pour $m=3$, la prédiction (31.25\%) tombe exactement entre les deux points
+de test les plus proches (30\% encore bon, 32\% déjà cassé), avec une
+transition observée à 31\% (33\% d'exactitude, ni 100\% ni 0\%) --- la
+signature attendue d'un seuil franchi de peu. La formule explique aussi
+pourquoi $b^*$ \textbf{décroît} avec $m$ : chaque littéral supplémentaire
+divise par deux la fréquence du signal positif, donc le bruit a
+proportionnellement plus de poids face à un signal de plus en plus rare.
+
+\begin{remark}
+Cette formule donne, pour une cible et un niveau de bruit donnés, le $K$
+minimal nécessaire \textbf{par calcul direct} (réduire chaque feuille jusqu'à
+ce que son nombre de littéraux pertinents $m$ satisfasse $b < b^*(m)$) ---
+au lieu du balayage empirique fait cette session pour AND2 et Maj3.
+\end{remark}
+
+\subsection*{Contre-exemple : MNIST ne suit pas ce principe}
+
+Sur MNIST, augmenter $K$ ($2 \to 32$) \textbf{dégrade} systématiquement le
+rappel ($50.9\% \to 14.1\%$), à l'opposé de AND2/Maj3. Hypothèse retenue
+mais \textbf{non encore vérifiée} : dilution du budget (300 exemples de
+découverte et $10^5$ pas d'apprentissage, répartis sur de plus en plus de
+feuilles). Le principe ``découper jusqu'à une variable par feuille'' semble
+spécifique aux cibles à structure logique propre (peu de littéraux
+réellement responsables) ; MNIST n'a pas cette structure (motif diffus sur
+toute l'image).
+
+% ======================================================
+\section{État actuel --- verdict}
+% ======================================================
+
+\begin{itemize}
+  \item Le \textbf{mécanisme central} (partition figée + convergence par
+        clause) est validé, y compris sur données réelles, avec une
+        méthodologie (baseline routeur seul) qui prouve que les clauses
+        font un travail réel.
+  \item Le \textbf{système complet}, avec les correctifs généraux ajoutés
+        (sampling équilibré, calibration $S/a$), n'est pas universellement
+        robuste : chaque correctif aide certains jeux de données et nuit à
+        d'autres. La calibration $S/a$ par feuille est la seule correction
+        qui, jusqu'ici, n'a cassé aucun cas testé.
+  \item La vraie limite identifiée n'est \textbf{pas} dans le code
+        multi-clause, mais dans le seuil $\Sstar$ du moteur 1-clause
+        d'origine, jamais caractérisé pour des cibles à plusieurs
+        littéraux.
+\end{itemize}
+
+% ======================================================
+\section{Recommandation pour la suite}
+% ======================================================
+
+Prioriser la généralisation théorique du seuil $\Sstar$ à une conjonction de
+$m$ littéraux (étendre le théorème de convergence IDENTITY bruité), plutôt
+que de continuer à corriger jeu de données par jeu de données. C'est la
+pièce qui transforme les observations de cette session (AND2, Maj3, tension
+$S/a$) en un résultat théorique unique et citable, et qui permettrait de
+calculer directement, pour une cible donnée, le $K$ minimal nécessaire ---
+au lieu de le découvrir par balayage empirique.
+
+En secondaire : vérifier l'hypothèse de dilution de budget sur MNIST (batch
+de découverte et budget d'entraînement proportionnels à $K$).
+
+\end{document}
