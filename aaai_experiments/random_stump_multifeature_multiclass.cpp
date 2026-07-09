@@ -5,6 +5,7 @@
 #include <cmath>
 #include <algorithm>
 #include <chrono>
+#include <thread>
 
 // Version multi-classe (one-vs-rest) de random_stump_multifeature.cpp :
 // chaque clause fixe K features aleatoires (au lieu d'une seule), notre
@@ -175,16 +176,32 @@ int main(int argc, char** argv) {
     auto trainRawAll = loadAll("../data/BinaryDigitsTrainingData192.txt", n);
     auto testRawAll  = loadAll("../data/BinaryDigitsTestData192.txt", n);
 
+    unsigned nThreads = thread::hardware_concurrency();
+    if (nThreads == 0) nThreads = 4;
+    cout << "threads disponibles : " << nThreads << "\n" << flush;
+
     vector<double> accs(nbRuns);
     for (int run = 0; run < nbRuns; run++) {
-        rng.seed(20000 + run);
         vector<vector<RandomStumpClause>> ensembles(numClasses);
         vector<vector<double>> alphas(numClasses);
+        // une classe = un thread independant (rng thread_local, seede
+        // distinctement) ; les classes sont totalement independantes
+        // (one-vs-rest), aucun changement a l'algorithme lui-meme.
+        auto t0 = chrono::steady_clock::now();
+        vector<thread> workers;
         for (int c = 0; c < numClasses; c++) {
-            vector<LabeledExample> trainBin;
-            for (auto& e : trainRawAll) trainBin.push_back({e.x, e.y == c ? 1 : 0});
-            trainOneClass(trainBin, n, N, M, total, K, S, a, ensembles[c], alphas[c]);
+            workers.emplace_back([&, c]() {
+                rng.seed(20000 + run * 1000 + c);
+                vector<LabeledExample> trainBin;
+                trainBin.reserve(trainRawAll.size());
+                for (auto& e : trainRawAll) trainBin.push_back({e.x, e.y == c ? 1 : 0});
+                trainOneClass(trainBin, n, N, M, total, K, S, a, ensembles[c], alphas[c]);
+            });
         }
+        for (auto& th : workers) th.join();
+        auto t1 = chrono::steady_clock::now();
+        cout << "  entrainement run " << run << " (parallele) [" << chrono::duration<double>(t1-t0).count() << "s]\n" << flush;
+
         int correct = 0;
         for (auto& ex : testRawAll) {
             vector<double> score(numClasses, 0);
