@@ -345,6 +345,36 @@ un mauvais réglage ne sont plus diluées par la masse des autres. C'est cette
 rareté relative de l'échantillonnage, pas la taille absolue de l'espace, qui
 gouverne la sensibilité à $S,\alpha$.
 
+\subsection{Test direct : augmenter $M$ referme-t-il l'écart ?}
+
+Pour vérifier l'hypothèse plutôt que de la supposer, on reteste 4 points
+extrêmes de la grille à $M=16\,000$ (ratio $16\,000/307\,000\approx5{,}2\,\%$,
+proche de celui de Digits) :
+
+\begin{center}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{lccc}
+\toprule
+Configuration & $M=500$ & $M=16\,000$ & Gain \\
+\midrule
+$S{=}0{,}05,\alpha{=}0{,}05$ (référence) & 85,9\,\% & 95,9\,\% & +10,0 \\
+$S{=}0{,}05,\alpha{=}0{,}3$              & 58,4\,\% & 79,6\,\% & +21,2 \\
+$S{=}0{,}05,\alpha{=}1{,}0$ (pire cas)   & 39,6\,\% & 72,6\,\% & +33,1 \\
+$S{=}1{,}0,\alpha{=}1{,}0$ (contrôle)    & 85,5\,\% & 95,5\,\% & +10,0 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+L'écart entre le meilleur et le pire cas passe de $46{,}3$ points ($M=500$) à
+$23{,}3$ points ($M=16\,000$) --- \textbf{divisé par deux}, confirmant que le
+ratio $M/\binom{n}{K}$ explique une part réelle de l'effet. Mais l'écart ne se
+referme pas complètement comme sur Digits (qui restait sous $3$ points) : à
+ratio comparable, MNIST reste plus sensible. La fragilité individuelle du pire
+pixel ($\alpha^\star=0{,}051$ contre $0{,}113$ pour Digits) contribue donc
+elle aussi, indépendamment du ratio d'échantillonnage --- les deux facteurs
+se combinent, aucun des deux ne suffit seul à expliquer la sensibilité
+observée.
+
 \section{Synthèse}
 
 \begin{center}
@@ -353,19 +383,21 @@ gouverne la sensibilité à $S,\alpha$.
 \toprule
 Dataset & $\binom{n}{K}$ & $M$ testé & $M/\binom{n}{K}$ & Sensibilité \\
 \midrule
-XOR    & $12$      & 200  & $17\,\%$    & Effondrement net (mur à $\alpha^\star$) \\
-Iris   & $120$     & 1500 & $1250\,\%$  & Dégradation modérée (88--95,5\,\%) \\
-Digits & $18\,300$ & 1000 & $5{,}5\,\%$ & Quasi aucune (94,2--97,1\,\%) \\
-MNIST  & $307\,000$& 500  & $0{,}16\,\%$& Forte (39,6--85,9\,\%) \\
+XOR    & $12$      & 200   & $17\,\%$    & Effondrement net (mur à $\alpha^\star$) \\
+Iris   & $120$     & 1500  & $1250\,\%$  & Dégradation modérée (88--95,5\,\%) \\
+Digits & $18\,300$ & 1000  & $5{,}5\,\%$ & Quasi aucune (94,2--97,1\,\%) \\
+MNIST  & $307\,000$& 500   & $0{,}16\,\%$& Forte (39,6--85,9\,\%) \\
+MNIST  & $307\,000$& 16\,000 & $5{,}2\,\%$ & Réduite de moitié (72,6--95,9\,\%), toujours pas plate \\
 \bottomrule
 \end{tabular}
 \end{center}
 
-La colonne qui explique vraiment la sensibilité est $M/\binom{n}{K}$ (le
-« taux d'échantillonnage » de l'espace combinatoire), pas $\binom{n}{K}$ seul :
-Iris (ratio le plus haut) est robuste, MNIST (ratio le plus bas, malgré le plus
-grand espace) est le plus sensible. Un $M$ plus grand sur MNIST (non testé ici,
-piste à suivre) devrait réduire cette sensibilité en rapprochant le ratio de
-celui de Digits.
+La colonne $M/\binom{n}{K}$ (le « taux d'échantillonnage » de l'espace
+combinatoire) explique une bonne partie de la sensibilité, mais pas tout :
+en ramenant le ratio de MNIST au niveau de celui de Digits ($M=16\,000$,
+Section~8.4), l'écart entre meilleur et pire cas est divisé par deux
+(46,3$\to$23,3 points) sans disparaître complètement. La fragilité
+individuelle du pire pixel (Section~8.1) contribue donc elle aussi,
+indépendamment du ratio --- les deux facteurs se combinent.
 
 \end{document}

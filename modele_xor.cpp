@@ -5,14 +5,12 @@
 #include <cmath>
 #include <algorithm>
 
-// Exemple labellise : ([1,0,1,0,0], 0)
+
 struct LabeledExample {
     vector<int> x;
     int y;
 };
 
-// Reprend la table de la regle a 4 cas, en sautant les features
-// figees par le conditionnement (deja decidees, pas d'apprentissage).
 inline void updateMasked(Clause& clause, const vector<int>& x, int y,
                          const Params& p, const vector<bool>& active) {
     double S = p.S, a = p.a;
@@ -71,7 +69,7 @@ int main(int argc, char** argv) {
 
     M = argc > 2 ? atoi(argv[2]) : 100;         // nombre total de clauses
     nbRuns = argc > 3 ? atoi(argv[3]) : 10;
-    total = argc > 4 ? atoi(argv[4]) : 1500;    // tirages d'entrainement PAR clause (sur son sous-ensemble)
+    total = argc > 4 ? atoi(argv[4]) : 200 ;    // tirages d'entrainement PAR clause (sur son sous-ensemble)
     if (argc > 5) S = atof(argv[5]);
     if (argc > 6) a = atof(argv[6]);
     if (argc > 7) N = atoi(argv[7]);

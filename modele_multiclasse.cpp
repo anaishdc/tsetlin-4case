@@ -6,15 +6,16 @@
 #include <algorithm>
 #include <chrono>
 #include <thread>
+#include <atomic>
+#include <stdexcept>
 
-// Exemple labellise : ([1,0,1,0,0], 0)
+
 struct LabeledExample {
     vector<int> x;
     int y;
 };
 
-// Reprend la table de la regle a 4 cas, en sautant les features
-// figees par le conditionnement (deja decidees, pas d'apprentissage).
+
 inline void updateMasked(Clause& clause, const vector<int>& x, int y,
                          const Params& p, const vector<bool>& active) {
     double S = p.S, a = p.a;
@@ -31,21 +32,25 @@ inline void updateMasked(Clause& clause, const vector<int>& x, int y,
 }
 
 // Version multi-classe (one-vs-rest) de random_stump_multifeature.cpp :
-// chaque clause fixe K features aleatoires (au lieu d'une seule), notre
-// regle a 4 cas (updateMasked), sans routeur, boosting AdaBoost independant
-// par clause. Utilise pour Iris/Digits quand K=1 plafonne.
+
 
 vector<LabeledExample> loadAll(const string& path, int n) {
+    ifstream f(path);
+    if (!f) throw runtime_error("Impossible d'ouvrir : " + path);
+
     vector<LabeledExample> data;
-    ifstream f(path); string line;
+    string line;
     while (getline(f, line)) {
         if (line.empty()) continue;
         istringstream iss(line);
         vector<int> x(n);
-        for (int i = 0; i < n; i++) iss >> x[i];
-        int label; iss >> label;
+        for (int i = 0; i < n; i++)
+            if (!(iss >> x[i])) throw runtime_error("Ligne invalide dans : " + path);
+        int label;
+        if (!(iss >> label)) throw runtime_error("Label manquant dans : " + path);
         data.push_back({x, label});
     }
+    if (data.empty()) throw runtime_error("Dataset vide : " + path);
     return data;
 }
 
@@ -70,16 +75,21 @@ struct RandomStumpClause {
     }
 };
 
-long g_pureCount = 0, g_mixedCount = 0, g_emptyCount = 0;
+atomic<long> g_pureCount{0}, g_mixedCount{0}, g_emptyCount{0};
 
-void trainOneClass(const vector<LabeledExample>& trainBin, int n, int N, int M, int total, int K,
+// Prend le dataset complet + la classe cible plutot qu'une copie deja
+// relabellisee : evite de dupliquer tout le dataset (ex: ~188 Mo/classe sur
+// MNIST, soit ~1.9 Go rien que pour les copies avec 10 classes en parallele).
+void trainOneClass(const vector<LabeledExample>& train, int targetClass, int n, int N, int M, int total, int K,
                    double S, double a, vector<RandomStumpClause>& clauses, vector<double>& alphas) {
     Params p = {S, a};
     uniform_int_distribution<int> valDist(0, 1);
-    int Nex = (int)trainBin.size();
+    int Nex = (int)train.size();
     vector<double> w(Nex, 1.0 / Nex);
+    auto label = [&](int i) { return train[i].y == targetClass ? 1 : 0; };
 
     for (int m = 0; m < M; m++) {
+
         vector<int> pool(n); for (int i = 0; i < n; i++) pool[i] = i;
         shuffle(pool.begin(), pool.end(), rng);
         vector<int> feats, vals;
@@ -87,11 +97,11 @@ void trainOneClass(const vector<LabeledExample>& trainBin, int n, int N, int M, 
         clauses.emplace_back(n, N, feats, vals);
 
         vector<int> subsetIdx;
-        for (int i = 0; i < Nex; i++) if (clauses.back().applies(trainBin[i].x)) subsetIdx.push_back(i);
+        for (int i = 0; i < Nex; i++) if (clauses.back().applies(train[i].x)) subsetIdx.push_back(i);
         if (subsetIdx.empty()) { alphas.push_back(0.0); g_emptyCount++; continue; }
 
         vector<int> subPos, subNeg;
-        for (int i : subsetIdx) (trainBin[i].y == 1 ? subPos : subNeg).push_back(i);
+        for (int i : subsetIdx) (label(i) == 1 ? subPos : subNeg).push_back(i);
         if (subPos.empty() || subNeg.empty()) g_pureCount++; else g_mixedCount++;
         vector<double> wPos, wNeg;
         for (int i : subPos) wPos.push_back(w[i]);
@@ -103,18 +113,16 @@ void trainOneClass(const vector<LabeledExample>& trainBin, int n, int N, int M, 
         for (int t = 0; t < total; t++) {
             bool useNeg = subNeg.empty() ? false : (subPos.empty() ? true : !flip(0.5));
             int idx = useNeg ? subNeg[negDist(rng)] : subPos[posDist(rng)];
-            updateMasked(clauses.back().clause, trainBin[idx].x, trainBin[idx].y, p, clauses.back().active);
+            updateMasked(clauses.back().clause, train[idx].x, label(idx), p, clauses.back().active);
         }
 
-        // Clause vide = abstention : ne doit ni compter dans l'erreur AdaBoost
-        // ni modifier les poids, puisqu'elle sera de toute facon ignoree au vote final.
         if (clauses.back().isEmpty()) { alphas.push_back(0.0); continue; }
 
         double err = 0, wSum = 0;
         vector<bool> wrong(subsetIdx.size());
         for (size_t j = 0; j < subsetIdx.size(); j++) {
             int i = subsetIdx[j];
-            wrong[j] = (clauses.back().clause.output(trainBin[i].x) != trainBin[i].y);
+            wrong[j] = (clauses.back().clause.output(train[i].x) != label(i));
             if (wrong[j]) err += w[i];
             wSum += w[i];
         }
@@ -132,8 +140,13 @@ void trainOneClass(const vector<LabeledExample>& trainBin, int n, int N, int M, 
     }
 }
 
+
 int main(int argc, char** argv) {
     string which = argc > 1 ? argv[1] : "iris";
+    if (which != "iris" && which != "digits" && which != "mnist") {
+        cerr << "Dataset inconnu : " << which << ". Choix possibles : iris, digits, mnist.\n";
+        return 1;
+    }
     int n, numClasses;
     int N = 100, total = 20000, M = 100, nbRuns = 10, K = 2;
     double S = 1, a = 0.3;
@@ -147,6 +160,10 @@ int main(int argc, char** argv) {
         if (argc > 6) S = atof(argv[6]);
         if (argc > 7) a = atof(argv[7]);
         if (argc > 8) N = atoi(argv[8]);
+        if (K < 0 || K > n) {
+            cerr << "K doit appartenir a [0, " << n << "], recu : " << K << "\n";
+            return 1;
+        }
 
         cout << which << " (stumps a " << K << " features aleatoires, notre regle, sans routeur) : M=" << M
              << " total=" << total << " S=" << S << " a=" << a << " N=" << N << "\n" << flush;
@@ -165,9 +182,7 @@ int main(int argc, char** argv) {
             vector<vector<RandomStumpClause>> ensembles(numClasses);
             vector<vector<double>> alphas(numClasses);
             for (int c = 0; c < numClasses; c++) {
-                vector<LabeledExample> trainBin;
-                for (auto& e : trainR) trainBin.push_back({e.x, e.y == c ? 1 : 0});
-                trainOneClass(trainBin, n, N, M, total, K, S, a, ensembles[c], alphas[c]);
+                trainOneClass(trainR, c, n, N, M, total, K, S, a, ensembles[c], alphas[c]);
             }
             int correct = 0;
             for (auto& ex : testR) {
@@ -216,6 +231,10 @@ int main(int argc, char** argv) {
         if (argc > 7) a = atof(argv[7]);
         if (argc > 8) N = atoi(argv[8]);
     }
+    if (K < 0 || K > n) {
+        cerr << "K doit appartenir a [0, " << n << "], recu : " << K << "\n";
+        return 1;
+    }
 
     cout << which << " (stumps a " << K << " features aleatoires, notre regle, sans routeur, " << nbRuns << " runs) : M=" << M
          << " total=" << total << " S=" << S << " a=" << a << " N=" << N << "\n" << flush;
@@ -247,10 +266,7 @@ int main(int argc, char** argv) {
         for (int c = 0; c < numClasses; c++) {
             workers.emplace_back([&, c]() {
                 rng.seed(20000 + run * 1000 + c);
-                vector<LabeledExample> trainBin;
-                trainBin.reserve(trainRawAll.size());
-                for (auto& e : trainRawAll) trainBin.push_back({e.x, e.y == c ? 1 : 0});
-                trainOneClass(trainBin, n, N, M, total, K, S, a, ensembles[c], alphas[c]);
+                trainOneClass(trainRawAll, c, n, N, M, total, K, S, a, ensembles[c], alphas[c]);
             });
         }
         for (auto& th : workers) th.join();
