@@ -93,7 +93,7 @@ inline pair<double, double> calibrateParams(double baseS, double baseA, double w
 
 inline void updateMasked(Clause& clause, const vector<int>& x, int y,
                          const Params& p, const vector<bool>& active) {
-    double S = p.S1, a = p.a1;
+    double S = p.S, a = p.a;
     for (int i = 0; i < clause.n; i++) {
         if (!active[i]) continue;
         if (x[i] == 0) {
@@ -157,7 +157,7 @@ struct MultiClauseNetwork {
             active.push_back(act);
             // pour chaque clause on trouve les bons params alpha et s 
             auto [S, a] = calibrateParams(baseS, baseA, router->leafWorstSkew[k]);
-            params.push_back({ S, S, S, S, a, a });
+            params.push_back({ S, a });
         }
     }
 

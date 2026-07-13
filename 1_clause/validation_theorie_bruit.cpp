@@ -106,7 +106,7 @@ int main() {
         vector<double> Svals = {0.05,0.10,0.20,0.30,0.40,0.50,0.60,0.65,
                                  0.70,0.75,0.80,0.85,0.90,1.00};
         for (double S : Svals) {
-            Params p = { S, S, S, S, alpha, alpha };
+            Params p = { S, alpha };
             Theory th = computeTheory(c, noiseProb, alpha, S, N);
             DetailedMetrics m = runBatchDetailed(noiseProb, p, N, total, window, nbRuns);
             f << S << "," << th.rhoV << "," << th.piV_Inc << ","
@@ -132,7 +132,7 @@ int main() {
         vector<double> noises = {0.05,0.10,0.15,0.20,0.25,0.30,0.32,
                                   0.333,0.34,0.36,0.38,0.40,0.45};
         for (double noise : noises) {
-            Params p = { S, S, S, S, alpha, alpha };
+            Params p = { S, alpha };
             Theory th = computeTheory(c, noise, alpha, S, N);
             DetailedMetrics m = runBatchDetailed(noise, p, N, total, window, nbRuns);
             f << noise << "," << th.Sstar << "," << th.rhoV << "," << th.piV_Inc << ","
@@ -156,7 +156,7 @@ int main() {
              "vIncludeRate_empirique,erreur_empirique\n";
         vector<int> Nvals = {2,3,5,8,11,15,20,25,30,40,60};
         for (int N : Nvals) {
-            Params p = { S, S, S, S, alpha, alpha };
+            Params p = { S, alpha };
             Theory th = computeTheory(c, noiseProb, alpha, S, N);
             long long thisTotal = max(total, (long long)N * 200'000LL);
             DetailedMetrics m = runBatchDetailed(noiseProb, p, N, thisTotal, window, nbRuns);

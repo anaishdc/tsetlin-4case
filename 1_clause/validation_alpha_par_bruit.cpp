@@ -116,7 +116,7 @@ int main() {
             double alphaStar = computeTheory(c, noise, 1.0, S, N).alphaStar;
             cout << "\n=== bruit=" << noise << "  alpha*_theorie=" << alphaStar << " ===\n";
             for (double alpha : alphas) {
-                Params p = { S, S, S, S, alpha, alpha };
+                Params p = { S, alpha };
                 Theory th = computeTheory(c, noise, alpha, S, N);
                 DetailedMetrics m = runBatchDetailed(noise, p, N, total, window, nbRuns);
                 f << noise << "," << alpha << "," << alphaStar << "," << th.rhoV << ","

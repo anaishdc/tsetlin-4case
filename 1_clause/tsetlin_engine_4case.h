@@ -43,11 +43,10 @@ struct LiteralSet {
 };
 
 // ---------------------------------------------------------------
-// Paramètres de la règle d'apprentissage à 4 cas : seulement S et a
-// (S1 et a1 sont réutilisés comme S et a, le reste n'est pas utilisé)
+// Paramètres de la règle d'apprentissage à 4 cas
 // ---------------------------------------------------------------
 struct Params {
-    double S1, S2, S3, S4, a1, a2;
+    double S, a;
 };
 
 // ---------------------------------------------------------------
@@ -99,7 +98,7 @@ struct Clause {
     //    1  | 1 |   0  |   -a
     //
     void update(const vector<int>& x, int y, const Params& p) {
-        double S = p.S1, a = p.a1;
+        double S = p.S, a = p.a;
         for (int i = 0; i < n; i++) {
             if (x[i] == 0) {
                 if (y == 0) { v[i].towardInclude(S); vbar[i].towardExclude(S); }

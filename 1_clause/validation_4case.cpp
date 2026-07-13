@@ -110,7 +110,7 @@ void ligneDataClause(const string& label, double exact, double stdE,
 // ==========================================================================
 
 int main() {
-    const Params p      = {1,1,1,1,0.3,0.3}; // S1=S, a1=a (regle a 4 cas) ; S2,S3,S4,a2 inutilises
+    const Params p      = {1,0.3}; // S1=S, a1=a (regle a 4 cas) ; S2,S3,S4,a2 inutilises
     const int    total  = 100000;//  nombre total d'exemple
     const int    window = 4000; //evaluations sur les 4000 derniers exemples 
     const int    nbRuns = 50; // nb simulations 

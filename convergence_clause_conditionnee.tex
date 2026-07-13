@@ -1,0 +1,519 @@
+\documentclass[12pt,a4paper]{article}
+
+% --- Encodage et langue ---
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+
+% --- Maths ---
+\usepackage{amsmath,amssymb,amsthm}
+
+% --- Mise en page ---
+\usepackage[top=2.5cm,bottom=2.5cm,left=2.8cm,right=2.8cm]{geometry}
+\usepackage{parskip}
+
+% --- Tableaux ---
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{multirow}
+
+% --- Figures et couleurs ---
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, decorations.pathreplacing, calc, fit, backgrounds}
+\usepackage{xcolor}
+
+% --- Liens ---
+\usepackage{hyperref}
+\hypersetup{colorlinks=true, linkcolor=blue!60!black, citecolor=blue!60!black}
+
+% --- Environnements théorème ---
+\newtheorem{theorem}{Théorème}[section]
+\newtheorem{lemma}[theorem]{Lemme}
+\newtheorem{corollary}[theorem]{Corollaire}
+\theoremstyle{remark}
+\newtheorem{remark}{Remarque}[section]
+\newtheorem{example}{Exemple}[section]
+
+% --- Macros ---
+\newcommand{\Inc}{\ensuremath{\mathrm{Include}}}
+\newcommand{\Exc}{\ensuremath{\mathrm{Exclude}}}
+\newcommand{\vbar}{\bar{v}}
+\newcommand{\ps}{\text{ p.s.}}
+\newcommand{\DF}{D_F}
+
+% ======================================================
+\begin{document}
+% ======================================================
+
+\begin{center}
+  {\LARGE\bfseries Convergence de la clause conditionnée}\\[6pt]
+  {\large Généralisation multi-features de la règle à 4 cas}\\[4pt]
+  {\large\itshape Littéral pertinent, neutralité des littéraux non pertinents,
+  et fenêtre admissible pour $S$}\\[12pt]
+  {\normalsize Analyse par chaînes de Markov --- suite de
+  \textit{Démonstration de convergence de la règle d'apprentissage à 4 cas}}
+\end{center}
+
+\vspace{1em}
+\hrule
+\vspace{1.5em}
+
+\tableofcontents
+
+\newpage
+
+% ======================================================
+\section{Objectif et portée}
+% ======================================================
+
+Le document \textit{Démonstration de convergence de la règle d'apprentissage à 4 cas}
+établit la convergence presque sûre (cas sans bruit) et la concentration de la
+distribution stationnaire (cas bruité) pour \textbf{une seule feature} $x\in\{0,1\}$,
+gouvernée par une paire d'automates $(v,\vbar)$.
+
+Notre architecture complète conditionne chaque clause sur $K$ features tirées au
+hasard et figées, et laisse les $n-K$ features restantes libres, apprises par la
+règle à 4 cas sur le sous-ensemble d'exemples où les $K$ conditions sont satisfaites.
+Ce document répond à la question laissée ouverte : \textbf{que se passe-t-il quand
+plusieurs automates libres apprennent simultanément dans une même clause ?}
+
+\begin{center}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{p{6.3cm}p{6.3cm}}
+\toprule
+\textbf{Ce que ce document prouve} & \textbf{Ce que ce document ne prouve pas} \\
+\midrule
+Une fois que le conditionnement à $K$ features a isolé un unique littéral libre
+pertinent, la clause converge vers l'implémentation correcte de ce littéral, et
+tous les autres littéraux libres se neutralisent (deviennent tautologiques).
+&
+Que le tirage aléatoire des $K$ features conditionnées trouve effectivement un tel
+littéral pertinent --- c'est un phénomène combinatoire (la « loterie »),
+caractérisé empiriquement (Mux11, Iris, Digits, MNIST), pas démontré ici.
+\\
+\addlinespace
+Une fenêtre explicite $S\in(S_{\text{bas}}, S_{\max})$ garantissant cette double
+convergence, avec vitesse géométrique explicite.
+&
+La convergence directe vers une cible à $m\ge2$ littéraux \emph{sans}
+conditionnement --- empiriquement hors de portée de la règle à 4 cas asymétrique
+(échec de \texttt{hybrid\_coord\_4case.cpp}), c'est le régime que couvre PCL, pas nous.
+\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+% ======================================================
+\section{Cadre}
+% ======================================================
+
+\subsection{Conditionnement et sous-ensemble applicable}
+
+Soit $n$ le nombre total de features binaires, et $F\subset\{1,\ldots,n\}$ l'ensemble
+des $K=|F|$ indices gelés par la clause, chacun à une valeur $v_i^\star\in\{0,1\}$
+($i\in F$) tirée au hasard à la création de la clause. On note
+\[
+  \DF = \bigl\{\, x\in\{0,1\}^n \;:\; x_i = v_i^\star \ \ \forall i\in F \,\bigr\}
+\]
+le \textbf{sous-ensemble applicable}. Dans l'implémentation, c'est exactement la
+fonction \texttt{applies(x)} de \texttt{RandomStumpClause} : seuls les exemples de
+$\DF$ sont vus par la clause, à l'entraînement comme à l'inférence.
+
+Pour $i\in F$, les deux automates $v_i,\vbar_i$ sont gelés à l'état \Exc{} et exclus
+de tout apprentissage (\texttt{active[i]=false}). Ils ne jouent aucun rôle dans la
+suite : la feature $i$ est déjà « consommée » par le filtre \texttt{applies}.
+
+On note $F^c = \{1,\ldots,n\}\setminus F$ l'ensemble des $n-K$ features
+\textbf{libres}, chacune gouvernée par sa propre paire d'automates $(v_i,\vbar_i)_{i\in F^c}$,
+mise à jour par la règle à 4 cas (Section~2 du document précédent), \textbf{restreinte
+aux exemples de $\DF$} : l'entraînement tire ses exemples uniquement dans le
+sous-ensemble applicable (\texttt{subsetIdx} dans le code).
+
+\subsection{Hypothèse de résolution}
+
+On suppose que le tirage des $K$ features conditionnées a réussi à isoler un
+\textbf{unique littéral pertinent} : il existe $j\in F^c$ tel que, restreint à
+$\DF$, le label $y$ ne dépend que de $x_j$, selon un canal de bruit
+$a_j = P(y=1\mid x_j=1,\DF)$, $b_j = P(y=1\mid x_j=0,\DF)$, avec $a_j\ne b_j$
+(cas IDENTITY si $a_j>b_j$, NOT si $b_j>a_j$), et $c_j = P(x_j=1\mid \DF)\in(0,1)$.
+
+Pour toute autre feature libre $i\in F^c\setminus\{j\}$, on suppose qu'elle est
+\textbf{non pertinente} restreinte à $\DF$ : conditionnellement indépendante de $y$,
+c'est-à-dire
+\[
+  P(y=1\mid x_i=1,\DF) \;=\; P(y=1\mid x_i=0,\DF) \;=:\; p_y \in(0,1),
+\]
+avec une marginale propre $c_i = P(x_i=1\mid\DF)\in(0,1)$, pas nécessairement égale à
+$\tfrac12$.
+
+\begin{remark}
+Cette hypothèse de résolution --- l'existence d'un $j$ isolé --- est exactement ce
+que le conditionnement à $K$ features est censé produire : c'est un fait
+\emph{statistique} sur le tirage aléatoire des $K$ conditions, pas une propriété
+garantie a priori. Voir Section~\ref{sec:portee} pour la discussion complète.
+\end{remark}
+
+% ======================================================
+\section{Indépendance des mises à jour entre littéraux libres}
+% ======================================================
+
+\begin{lemma}[Découplage multi-features]\label{lem:decouplage_multi}
+Pour tout $i\in F^c$, l'action appliquée au couple $(v_i,\vbar_i)$ à l'instant $t$
+ne dépend que de $(x_{i,t}, y_t)$ --- la valeur de la feature $i$ et le label de
+l'exemple courant, tous deux restreints à $\DF$. Elle ne dépend :
+\begin{itemize}
+  \item ni de la sortie $C(x_t)$ de la clause,
+  \item ni de l'état des automates $(v_{i'},\vbar_{i'})$ pour $i'\ne i$,
+  \item ni des valeurs $x_{i'}$ pour $i'\ne i$.
+\end{itemize}
+\end{lemma}
+
+\begin{proof}
+Vérification directe sur \texttt{updateMasked} : la boucle de mise à jour traite
+chaque feature libre $i$ indépendamment, en appliquant la table de la règle à 4 cas
+(Section~2 du document précédent) au couple $(x_{i,t}, y_t)$ uniquement. Aucun terme
+croisé entre features n'apparaît dans le code ni dans la spécification de la règle.
+Le cas particulier $K=1$ (une seule feature libre observée) redonne exactement le
+Lemme de découplage du document précédent.
+\end{proof}
+
+\begin{remark}[Ce que ce lemme ne suppose \emph{pas}]
+On ne suppose \emph{aucune} indépendance statistique entre les $x_i$ eux-mêmes :
+deux pixels voisins d'une image, par exemple, sont typiquement corrélés. Le
+Lemme~\ref{lem:decouplage_multi} est un fait \emph{architectural} (comment la mise à
+jour est câblée), pas une hypothèse sur les données. Ce qui compte pour la suite est
+seulement la loi marginale du couple $(x_i, y)$ restreint à $\DF$ --- peu importe
+ce qui se passe avec les autres $x_{i'}$.
+\end{remark}
+
+Conséquence directe : la chaîne $(v_i(t),\vbar_i(t))$ est, pour chaque $i\in F^c$
+\emph{pris isolément}, exactement une instance de la chaîne bidirectionnelle étudiée
+dans le document précédent (Lemme~4 : « chaîne bidirectionnelle », Lemme ergodique),
+avec ses propres paramètres $(a_i,b_i,c_i)$ calculés sur $\DF$.
+
+% ======================================================
+\section{Convergence du littéral pertinent}
+% ======================================================
+
+\begin{theorem}[Rappel --- convergence du littéral pertinent]\label{thm:pertinent}
+Sous l'hypothèse de résolution (Section~2.2), avec $\Delta_j =
+(1-c_j)(1-b_j)-c_j(1-a_j)$ (cas IDENTITY, $a_j>b_j$, $\Delta_j>0$) et
+\[
+  S \;>\; S_{\text{bas}}(j) \;:=\; \frac{(1-c_j)\,b_j\,\alpha}{\Delta_j},
+\]
+alors $\rho_{v_j}>1$ et $\rho_{\vbar_j}<1$, et
+\[
+  \pi_{v_j}(\Inc) \xrightarrow[N\to\infty]{} 1, \qquad
+  \pi_{\vbar_j}(\Exc) \xrightarrow[N\to\infty]{} 1.
+\]
+(Cas NOT : symétrique, avec $\Delta_j'=-\Delta_j$ et le seuil correspondant.)
+\end{theorem}
+
+\begin{proof}
+Application directe du Théorème « Convergence IDENTITY, cas bruité » (resp. « NOT »)
+du document précédent, avec $c,a,b,\Delta$ remplacés par $c_j,a_j,b_j,\Delta_j$
+--- les statistiques locales de $(x_j,y)$ restreintes à $\DF$. La preuve est
+identique terme à terme : elle ne repose que sur la loi marginale de $(x_j,y)$, qui
+est ici la loi \emph{conditionnelle} à $\DF$ plutôt que la loi globale, ce qui ne
+change rien à l'argument (bilan détaillé, chaîne ergodique).
+\end{proof}
+
+% ======================================================
+\section{Neutralité des littéraux non pertinents}
+% ======================================================
+
+C'est le résultat nouveau de ce document. Il répond à une question posée en
+pratique (par Florent Avellaneda) : \emph{est-ce que les probabilités $S,\alpha$
+de la règle peuvent faire converger un littéral non pertinent vers une contrainte
+fausse, simplement à cause d'un déséquilibre marginal de sa feature ?}
+
+\subsection{Calcul des rapports $\rho$}
+
+Pour $i\in F^c\setminus\{j\}$, non pertinente ($a_i=b_i=p_y$), les probabilités de
+transition (Section~5 du document précédent, avec $a=b=p_y$) deviennent :
+\begin{align*}
+  p^+_{v_i} &= (1-c_i)(1-p_y)\,S, &
+  p^-_{v_i} &= (1-c_i)\,p_y\,\alpha + c_i(1-p_y)\,S; \\
+  p^+_{\vbar_i} &= c_i(1-p_y)\,S, &
+  p^-_{\vbar_i} &= (1-c_i)(1-p_y)\,S + c_i\,p_y\,\alpha.
+\end{align*}
+
+\begin{lemma}[Signe de $\rho_{v_i}-1$ et $\rho_{\vbar_i}-1$]\label{lem:signe_neutre}
+\[
+  \rho_{v_i} < 1
+  \;\Longleftrightarrow\;
+  (1-2c_i)(1-p_y)\,S \;<\; (1-c_i)\,p_y\,\alpha,
+  \qquad
+  \rho_{\vbar_i} < 1
+  \;\Longleftrightarrow\;
+  (2c_i-1)(1-p_y)\,S \;<\; c_i\,p_y\,\alpha.
+\]
+\end{lemma}
+
+\begin{proof}
+$\rho_{v_i}<1 \iff p^+_{v_i}<p^-_{v_i}$ (car $p^-_{v_i}>0$ toujours) :
+\[
+  (1-c_i)(1-p_y)S < (1-c_i)p_y\alpha + c_i(1-p_y)S
+  \;\Longleftrightarrow\;
+  (1-p_y)S\bigl[(1-c_i)-c_i\bigr] < (1-c_i)p_y\alpha,
+\]
+d'où la première inégalité, le facteur $(1-c_i)-c_i=1-2c_i$. Calcul symétrique pour
+$\rho_{\vbar_i}<1$, en factorisant $c_i-(1-c_i)=2c_i-1$.
+\end{proof}
+
+\begin{theorem}[Neutralité --- fenêtre supérieure sur $S$]\label{thm:neutralite}
+Soit $i\in F^c\setminus\{j\}$ non pertinente, de marginale $c_i\in(0,1)$. Posons
+\[
+  S_i^{\max} \;:=\;
+  \begin{cases}
+    \dfrac{c_i\,p_y\,\alpha}{(2c_i-1)(1-p_y)} & \text{si } c_i > \tfrac12, \\[10pt]
+    \dfrac{(1-c_i)\,p_y\,\alpha}{(1-2c_i)(1-p_y)} & \text{si } c_i < \tfrac12, \\[10pt]
+    +\infty & \text{si } c_i = \tfrac12.
+  \end{cases}
+\]
+Si $S < S_i^{\max}$, alors $\rho_{v_i}<1$ \emph{et} $\rho_{\vbar_i}<1$
+simultanément, donc
+\[
+  \pi_{v_i}(\Exc) \xrightarrow[N\to\infty]{} 1
+  \qquad\text{et}\qquad
+  \pi_{\vbar_i}(\Exc) \xrightarrow[N\to\infty]{} 1,
+\]
+c'est-à-dire que le littéral $i$ converge vers la configuration $(\Exc,\Exc)$
+--- \textbf{tautologique}, ne contraignant rien.
+\end{theorem}
+
+\begin{proof}
+\textbf{Cas $c_i=\tfrac12$.} Les deux membres de gauche du
+Lemme~\ref{lem:signe_neutre} s'annulent ($1-2c_i=2c_i-1=0$), et les deux membres de
+droite sont strictement positifs (car $p_y\in(0,1)$, $\alpha>0$, $c_i,1-c_i>0$).
+Les deux inégalités sont donc vraies pour \emph{tout} $S>0$ : $\rho_{v_i}<1$ et
+$\rho_{\vbar_i}<1$ inconditionnellement.
+
+\textbf{Cas $c_i>\tfrac12$.} Le facteur $1-2c_i<0$ rend la première inégalité du
+Lemme~\ref{lem:signe_neutre} automatiquement vraie (membre de gauche négatif,
+membre de droite positif) : $\rho_{v_i}<1$ pour tout $S$. Pour la seconde, le
+facteur $2c_i-1>0$ impose de diviser --- sans changer le sens de l'inégalité ---
+pour isoler $S$ :
+\[
+  (2c_i-1)(1-p_y)\,S < c_i\,p_y\,\alpha
+  \;\Longleftrightarrow\;
+  S < \frac{c_i\,p_y\,\alpha}{(2c_i-1)(1-p_y)} = S_i^{\max}.
+\]
+
+\textbf{Cas $c_i<\tfrac12$.} Symétrique (échanger les rôles de $v_i$ et $\vbar_i$),
+la seconde inégalité est automatique et la première donne le seuil correspondant.
+
+Dans les trois cas, $S<S_i^{\max}$ entraîne $\rho_{v_i}<1$ et $\rho_{\vbar_i}<1$
+simultanément. Le Lemme « chaîne bidirectionnelle » du document précédent
+s'applique alors aux deux chaînes (chacune ergodique, espace d'états fini), donnant
+$\pi_{v_i}(\Exc) = 1/(\rho_{v_i}^{-N}+1)$ et de même pour $\vbar_i$, toutes deux
+$\to 1$ quand $N\to\infty$.
+\end{proof}
+
+\begin{remark}[Interprétation --- le bruit vient du déséquilibre, pas de la
+corrélation]
+Le résultat est contre-intuitif au premier abord : la feature $i$ est \emph{parfaitement
+indépendante} de $y$, et pourtant sa convergence vers la neutralité n'est pas
+automatique. La cause n'est pas une corrélation cachée avec $y$ : c'est le simple
+\textbf{déséquilibre marginal} $c_i\ne\tfrac12$ (la feature vaut plus souvent 1 que
+0, ou l'inverse) qui, combiné à un $S$ trop grand, fait dériver un des deux
+automates vers \Inc{} --- une inclusion \emph{fantôme}, fondée sur rien d'autre que
+la fréquence brute de la feature. C'est exactement la question posée par Florent :
+plus il y a de features libres, plus il y a de chances qu'au moins une ait un
+déséquilibre marginal significatif, et donc plus la fenêtre tolérable pour $S$ se
+resserre.
+\end{remark}
+
+% ======================================================
+\section{Convergence globale de la clause conditionnée}
+% ======================================================
+
+\begin{theorem}[Convergence de la clause à $K$ features]\label{thm:global}
+Sous l'hypothèse de résolution (Section~2.2), supposons que $S$ satisfasse
+simultanément
+\[
+  \boxed{\;S_{\text{bas}}(j) \;<\; S \;<\; \min_{i\in F^c\setminus\{j\}} S_i^{\max}\;}
+\]
+où $S_{\text{bas}}(j)$ est le seuil du Théorème~\ref{thm:pertinent} et $S_i^{\max}$
+celui du Théorème~\ref{thm:neutralite}. Alors, quand $N\to\infty$ :
+\begin{itemize}
+  \item $(v_j,\vbar_j)$ converge vers la configuration codant \Inc/\Exc{} ou
+  \Exc/\Inc{} selon IDENTITY/NOT (Théorème~\ref{thm:pertinent}) ;
+  \item pour tout $i\in F^c\setminus\{j\}$, $(v_i,\vbar_i)$ converge vers
+  $(\Exc,\Exc)$ (Théorème~\ref{thm:neutralite}) ;
+\end{itemize}
+simultanément, avec probabilité stationnaire jointe $\to 1$. La clause, restreinte
+à $\DF$, converge donc vers l'implémentation correcte du littéral unique $x_j$ (ou
+$\neg x_j$), sans contrainte parasite issue des $n-K-1$ autres features libres.
+\end{theorem}
+
+\begin{proof}
+Notons $q_i(N) = 1-\pi_i(\text{configuration correcte pour }i)$ l'erreur
+stationnaire de la feature libre $i$ --- où « correcte » signifie \Inc/\Exc{}
+adéquat pour $i=j$ (Théorème~\ref{thm:pertinent}), ou $(\Exc,\Exc)$ pour
+$i\ne j$ (Théorème~\ref{thm:neutralite}). Chacune des $n-K$ chaînes
+$(v_i,\vbar_i)_{i\in F^c}$ est ergodique (Lemme « chaîne bidirectionnelle », état
+fini, irréductible et apériodique), donc admet une unique loi stationnaire, et la
+borne géométrique du document précédent donne $q_i(N) \le \rho_i^{-N}$ pour un
+$\rho_i>1$ approprié (le $\rho_v$ ou $\rho_{\vbar}$ pertinent selon le cas), avec
+$\rho_i>1$ garanti par les Théorèmes~\ref{thm:pertinent} et \ref{thm:neutralite}
+sous la condition encadrée sur $S$.
+
+Il y a $n-K$ features libres, donc $n-K$ termes $q_i(N)$ (un seul pour $j$, deux
+--- $v_i$ et $\vbar_i$ --- pour chaque $i\ne j$, soit au plus $2(n-K)-1$ chaînes
+au total, un nombre \emph{fini} fixé par $n$ et $K$). Par l'inégalité de
+Boole (union finie) :
+\[
+  P(\text{au moins une chaîne dans la mauvaise configuration})
+  \;\le\; \sum_{\text{chaînes}} q_i(N)
+  \;\xrightarrow[N\to\infty]{}\; 0,
+\]
+puisque c'est une somme \emph{finie} de termes tendant individuellement vers $0$.
+Donc
+\[
+  P(\text{toutes les chaînes dans la configuration correcte}) \xrightarrow[N\to\infty]{} 1,
+\]
+ce qui est exactement l'énoncé du théorème.
+\end{proof}
+
+\begin{remark}[Pourquoi une intersection finie suffit]
+Le nombre de features libres $n-K$ est fixé dès la création de la clause --- ce
+n'est pas une limite $n\to\infty$. L'union bound ci-dessus est donc une somme
+finie de termes qui décroissent chacun géométriquement en $N$ ($\rho_i^{-N}$) :
+la convergence jointe est \emph{elle-même} géométrique en $N$, avec un taux
+gouverné par le pire des $\rho_i$ (le plus proche de $1$ parmi le littéral
+pertinent et tous les littéraux neutres). C'est une conséquence directe et
+quantifiée du Lemme~\ref{lem:decouplage_multi} : parce que les mises à jour sont
+découplées entre littéraux, la convergence jointe ne coûte rien de plus qu'une
+somme finie d'erreurs individuelles.
+\end{remark}
+
+\begin{corollary}[Existence d'une fenêtre non vide]
+La fenêtre $\bigl(S_{\text{bas}}(j),\,\min_i S_i^{\max}\bigr)$ du
+Théorème~\ref{thm:global} est non vide dès que
+$S_{\text{bas}}(j) < \min_i S_i^{\max}$, une condition qui dépend uniquement des
+statistiques locales $(a_j,b_j,c_j)$ et $(c_i)_{i\ne j}$ sur $\DF$ --- calculable
+explicitement à partir des données, exactement comme le seuil $S^\star$ du
+Test~A du document précédent. Rien ne garantit que cette fenêtre soit non vide
+pour tout jeu de données : si une feature non pertinente a un déséquilibre
+marginal $c_i$ très fort, $S_i^{\max}$ peut devenir trop petit pour laisser de la
+place au-dessus de $S_{\text{bas}}(j)$ --- auquel cas \emph{aucun} choix de $S$ ne
+fait converger la clause correctement, et augmenter $\alpha$ (qui apparaît au
+numérateur de $S_i^{\max}$ et de $S_{\text{bas}}(j)$ de façon symétrique) ne
+suffit pas non plus à rouvrir la fenêtre à lui seul.
+\end{corollary}
+
+% ======================================================
+\section{Validation empirique}\label{sec:validation}
+% ======================================================
+
+Les deux théorèmes centraux (\ref{thm:pertinent} et \ref{thm:neutralite}) ont
+depuis été confrontés à des données réelles, avec un accord net.
+
+\subsection{La fenêtre sur $S$, mesurée sur XOR}
+
+Sur \texttt{NoisyXORTrainingData.txt} ($K=1$, feature conditionnée $=x_1$,
+littéral pertinent $=x_2$), la mesure directe donne $c_j=0{,}5$, $a_j=0{,}603$,
+$b_j=0{,}397$ (bruit $\approx 39{,}7\,\%$). Le Théorème~\ref{thm:pertinent}
+prédit un seuil $S_{\text{bas}}(j)$ qui, réécrit comme seuil sur $\alpha$ à $S$
+fixé, donne $\alpha^\star(S)=0{,}519\,S$. Un balayage de 42 configurations
+$(S,\alpha)$, 20 runs chacune, confirme cette prédiction à la configuration
+près : l'accuracy s'effondre exactement (et de façon reproductible, variance
+nulle sur 20 runs) pour $\alpha>\alpha^\star(S)$, et reste correcte en-deçà,
+pour les 6 valeurs de $S$ testées. Voir
+\textit{Rôle de $S$ et $\alpha$ : théorie et validation} pour le détail complet
+(tableau, calculs, comparaison configuration par configuration).
+
+\subsection{La neutralité, mesurée directement (Tests D/E)}
+
+Le Théorème~\ref{thm:neutralite} a été testé isolément (\texttt{n=2} features,
+une pertinente et une non pertinente de marginale $c_i$ contrôlée) dans
+\texttt{validation\_theorie\_neutralite.cpp}. Seuil prédit $S_1^{\max}=0{,}20$
+(Test D, $c_1=0{,}8$) : bascule empirique mesurée entre $S=0{,}18$ et $S=0{,}22$.
+Seuil prédit $c_1^\star=0{,}588$ (Test E, $S=0{,}5$ fixé) : bascule mesurée
+entre $c_1=0{,}55$ et $c_1=0{,}65$. Dans les deux cas, la zone de transition
+empirique encadre exactement la prédiction théorique.
+
+\subsection{Pourquoi Iris et Digits ne montrent presque aucun effet}
+
+Le Corollaire (fenêtre non vide) prévient que $S_{\text{bas}}(j)$ peut être
+très inférieur à $\min_i S_i^{\max}$ selon les données --- rendant la fenêtre
+si large qu'aucune valeur de $S,\alpha\in(0,1]$ ne s'en approche. C'est
+exactement ce qui est mesuré sur Iris et Digits : contrairement à XOR (où
+$a_j-b_j=0{,}206$, un signal faible), plusieurs features d'Iris ont un écart
+$a-b$ très supérieur (jusqu'à $0{,}87$ pour une feature de Digits), donnant des
+$\alpha^\star(S{=}1)$ de l'ordre de $2$ à $230$ --- très au-delà de $1$. Un
+balayage complet sur ces deux datasets confirme : la destination ne bascule
+quasiment jamais dans $(0,1]$, et la légère dégradation observée à petit
+$S$/grand $\alpha$ est un effet de \emph{vitesse} (Section~6.6 du document
+précédent), pas de destination --- cohérent avec le Théorème~\ref{thm:pertinent}
+qui ne garantit la destination qu'\emph{asymptotiquement en $N$}, pas
+instantanément à budget d'entraînement fini.
+
+\subsection{Confirmation indépendante : $K=0$ échoue là où l'hypothèse de résolution ne peut pas s'appliquer}
+
+Section~\ref{sec:portee} note que ce document ne couvre pas les cibles à
+$m\ge2$ littéraux sans conditionnement. Un test direct ($K=0$ sur Iris, aucune
+feature gelée) confirme cette limite de façon indépendante :
+\textbf{22,7\,\% de précision, sous le niveau du hasard (33\,\% pour 3
+classes)}. Ce n'est pas dû à un manque de signal --- plusieurs features d'Iris
+sont individuellement très informatives (Section~\ref{sec:validation},
+ci-dessus) --- mais au fait que distinguer une espèce nécessite de combiner
+\emph{plusieurs} littéraux, une cible hors de portée de la règle à 4 cas sans
+le conditionnement qui la réduit à l'hypothèse de résolution
+(Section~\ref{sec:portee}, ci-dessous). C'est la seconde confirmation
+indépendante de cette limite, après \texttt{hybrid\_coord\_4case.cpp}.
+
+% ======================================================
+\section{Portée et limites}\label{sec:portee}
+% ======================================================
+
+\subsection{Ce qui reste hors de la preuve : le tirage du conditionnement}
+
+Le Théorème~\ref{thm:global} suppose l'hypothèse de résolution : qu'un tirage
+aléatoire particulier des $K$ features et valeurs conditionnées a isolé un unique
+littéral pertinent $j$. Rien dans ce document ne prouve qu'un tirage aléatoire
+\emph{trouve} un tel $j$ --- c'est un phénomène combinatoire distinct, caractérisé
+empiriquement dans ce travail sous le nom de \emph{loterie combinatoire} :
+\begin{itemize}
+  \item Mux11 ($K=3$, $\binom{11}{3}=165$ combinaisons, $1$ utile) : $M=300$
+  insuffisant (89\,\%), $M=8000$ résout (99,97\,\%).
+  \item MNIST ($K=2$, $\binom{784}{2}\approx 307\,000$ combinaisons) : amélioration
+  continue mais lente avec $M$ (85,7\,\% à $M{=}500$, 94,9\,\% à $M{=}8000$),
+  cohérente avec un espace de combinaisons bien plus grand que Mux11 ou Digits.
+\end{itemize}
+Une preuve complète du pipeline demanderait de combiner ce document (convergence
+\emph{une fois} le conditionnement fixé) avec un argument probabiliste séparé
+(type coupon collector / loi binomiale) bornant $P(\text{au moins une clause parmi
+$M$ tire un conditionnement résolvant})$ --- non traité ici.
+
+\subsection{Ce qui reste hors de la preuve : les cibles à $m\ge2$ littéraux sans conditionnement}
+
+Ce document ne prouve --- et ne cherche pas à prouver --- la convergence directe
+vers une cible à $m\ge2$ littéraux sans passer par un conditionnement qui la
+réduit d'abord à un littéral unique sur $\DF$. C'est précisément le régime que
+couvre PCL (Belaid et al., AAAI 2025) par un argument différent (probabilité
+d'inclusion unique $p_k$, sans conditionnement ni routeur). L'échec empirique de
+\texttt{hybrid\_coord\_4case.cpp} (plafond à $\sim$51\,\% sur une cible à 2
+littéraux, sans conditionnement) suggère que l'asymétrie propre de la règle à 4
+cas (Lemme de découplage : $y=1$ ne pousse jamais activement vers \Inc) rend ce
+régime hors de portée pour notre règle spécifique --- notre stratégie est
+structurellement différente : réduire la cible par conditionnement plutôt que
+la résoudre directement.
+
+\subsection{Ce qui est acquis}
+
+En comparaison de PCL, ce document fournit, dans son régime propre (conditionnement
+$+$ littéral unique résiduel) :
+\begin{itemize}
+  \item une fenêtre \emph{explicite et calculable} $(S_{\text{bas}}(j), \min_i
+  S_i^{\max})$ sur l'hyperparamètre $S$, avec formule fermée des deux bornes ;
+  \item un \emph{taux de convergence} explicite (géométrique en $N$, gouverné par
+  $\min(\rho_j, \min_i \rho_i)$) ;
+  \item une explication quantifiée du lien entre nombre de features libres et
+  « bruit perçu » (Théorème~\ref{thm:neutralite}) --- question posée
+  indépendamment par F.~Avellaneda, et qui se trouve avoir une réponse fermée dans
+  ce cadre.
+\end{itemize}
+
+\end{document}
