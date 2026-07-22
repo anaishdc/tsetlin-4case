@@ -113,9 +113,22 @@ def formule_pcl(n, epochs, X, y, states, p):
 # ---------------------------------------------------------------------------
 
 def formule_notre_regle(n, epochs, X, y, N, a, b, c, d):
+    """Retourne None si la clause apprise est contradictoire (x_j ET ~x_j
+    inclus en meme temps pour un meme j) -- un tel etat ne peut jamais
+    correspondre a une cible valide, donc on ne doit pas choisir
+    silencieusement l'un des deux litteraux comme le faisait l'ancien code."""
     state = entrainer_clause(n, epochs, X, y, N, a, b, c, d)
-    return [j + 1 if state[j, 1] > N else -(j + 1)
-            for j in range(n) if state[j, 0] > N or state[j, 1] > N]
+    formule = []
+    for j in range(n):
+        pos_inclus = state[j, 1] > N
+        neg_inclus = state[j, 0] > N
+        if pos_inclus and neg_inclus:
+            return None
+        if pos_inclus:
+            formule.append(j + 1)
+        elif neg_inclus:
+            formule.append(-(j + 1))
+    return formule
 
 
 def main():
