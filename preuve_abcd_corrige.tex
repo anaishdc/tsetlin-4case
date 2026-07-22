@@ -1,0 +1,303 @@
+\documentclass[11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{geometry}
+\geometry{margin=2.5cm}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\hypersetup{colorlinks=true,linkcolor=blue,citecolor=blue}
+\usepackage{booktabs}
+
+\newtheorem{theorem}{Théorème}
+\newtheorem{proposition}{Proposition}
+\newtheorem{lemma}{Lemme}
+\newtheorem{corollary}{Corollaire}
+\newtheorem{definition}{Définition}
+\newtheorem{hypothesis}{Hypothèse}
+
+\title{Convergence d'une règle locale à quatre cas\\pour l'apprentissage de conjonctions\\[4pt]}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+
+\section{Modèle}
+
+\subsection{Les automates}
+
+Soit $(X_t, Y_t)_{t \ge 1}$, indépendants et identiquement distribués, tirés d'une loi $P(X,Y)$ quelconque. $X = (X_1, \dots, X_n) \in \{0,1\}^n$ est le vecteur de features, $Y \in \{0,1\}$ est l'étiquette.
+
+Pour chaque feature $X_i$, on a deux automates à $2N$ états chacun :
+\begin{itemize}
+\item $v_i$ : gouverne le littéral $x_i$,
+\item $\bar v_i$ : gouverne le littéral $\neg x_i$ (la négation).
+\end{itemize}
+
+Un automate est dans l'état ``Include'' si son état $s$ vérifie $s > N$, et dans l'état ``Exclude'' sinon.
+
+La clause formée par l'ensemble des automates est le ET logique de tous les littéraux inclus :
+$$C(x) = \bigwedge_{i : v_i > N} x_i \; \wedge \; \bigwedge_{i : \bar v_i > N} \neg x_i.$$
+
+
+
+\subsection{Règle de mise à jour}
+
+\begin{definition}[]
+On fixe quatre paramètres $a, b, c, d \in (0,1]$. À chaque pas de temps, pour chaque variable $i$, on observe la paire $(x_i, y)$ et on met à jour $v_i$ et $\bar v_i$ selon :
+
+\begin{center}
+\begin{tabular}{cc|cc}
+\toprule
+$x_i$ & $y$ & Action sur $v_i$ & Action sur $\bar v_i$ \\
+\midrule
+0 & 0 & vers Inc avec proba $a$ & vers Exc avec proba $c$ \\
+0 & 1 & vers Exc avec proba $b$ & vers Inc avec proba $d$ \\
+1 & 0 & vers Exc avec proba $c$ & vers Inc avec proba $a$ \\
+1 & 1 & vers Inc avec proba $d$ & vers Exc avec proba $b$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+\end{definition}
+
+chaque automate ne regarde que sa propre paire $(x_i, y)$. Il ne sait rien des autres automates ni de la valeur de la clause complète. C'est ce qui permet de traiter chaque automate séparément dans les preuves qui suivent.
+
+\section{Dynamique d'un automate isolé}
+
+\subsection{Calcul des probabilités de transition}
+
+Pour chaque variable $i$, on note les quatre probabilités jointes :
+$$A = P(X_i=0, Y=0), \quad B = P(X_i=1, Y=0), \quad C = P(X_i=0, Y=1), \quad D = P(X_i=1, Y=1).$$
+
+On note $p_i^+$ la probabilité que $v_i$ reçoive une poussée vers Include , et $p_i^-$ la probabilité qu'il reçoive une poussée vers Exclude. De même pour $\bar v_i$ avec $\bar p_i^+, \bar p_i^-$.
+
+\begin{proposition}\label{prop:pv}
+$$p_i^+ = aA + dD, \qquad p_i^- = bC + cB;$$
+$$\bar p_i^+ = dC + aB, \qquad \bar p_i^- = cA + bD.$$
+Si $p_i^+, p_i^- > 0$, alors $(v_{i,t})_t$ est une chaîne de Markov de naissance-mort sur $\{1, \dots, 2N\}$ (même chose pour $\bar v_{i,t}$).
+\end{proposition}
+
+
+
+
+\section{Loi stationnaire exacte}
+
+On pose $\rho = p^+ / p^-$.
+
+\begin{theorem}\label{thm:stat}
+Si $p^+, p^- > 0$, la chaîne $(v_t)$ est irréductible et apériodique sur $\{1, \dots, 2N\}$. Elle converge donc en loi vers une unique loi stationnaire $\pi$ :
+$$\pi(k) = \frac{(1-\rho)\rho^{k-1}}{1 - \rho^{2N}} \quad (\rho \ne 1), \qquad \pi(k) = \frac{1}{2N} \quad (\rho = 1),$$
+$$\pi(\text{Inc}) = \frac{\rho^N}{1 + \rho^N}.$$
+Si $\rho > 1$ : $\pi(\text{Inc}) \to 1$ et $1 - \pi(\text{Inc}) \le \rho^{-N}$. Si $\rho < 1$ : $\pi(\text{Exc}) \to 1$ symétriquement.
+
+\end{theorem}
+
+\textbf{Démonstration}
+
+\textit{irréductibilité.} La chaîne peut, depuis n'importe quel état $k$, atteindre n'importe quel autre état $k'$ en un nombre fini de pas, car $p^+ > 0$ et $p^- > 0$ partout à l'intérieur. Toute chaîne de naissance-mort à transitions intérieures strictement positives est irréductible.
+
+
+\textit{apériodicité.} On a $P(1,1) = 1-p^+ \ge p^- > 0$ (car $p^+ + p^- \le 1$). L'état 1 possède donc une boucle sur lui-même, ce qui donne un cycle de longueur 1 passant par cet état. Une chaîne irréductible qui contient un état de période 1 est apériodique partout.
+
+\textit{forme géométrique de $\pi$.} On utilise le bilan détaillé , valable pour les chaînes de naissance-mort à l'équilibre : le flux de $k$ vers $k+1$ égale le flux de $k+1$ vers $k$ :
+$$\pi(k) \, p^+ = \pi(k+1)\, p^- \quad \Longrightarrow \quad \frac{\pi(k+1)}{\pi(k)} = \frac{p^+}{p^-} = \rho.$$
+Ce rapport étant constant pour tout $k$, on en déduit par récurrence :
+$$\pi(k) = \pi(1) \, \rho^{k-1}.$$
+
+\textit{ normalisation.} On impose $\sum_{k=1}^{2N} \pi(k) = 1$ :
+$$\pi(1) \sum_{k=1}^{2N} \rho^{k-1} = 1.$$
+Si $\rho \ne 1$, la somme géométrique vaut $\dfrac{1-\rho^{2N}}{1-\rho}$, donc :
+$$\pi(1) = \frac{1-\rho}{1-\rho^{2N}}, \qquad \pi(k) = \frac{(1-\rho)\,\rho^{k-1}}{1-\rho^{2N}}.$$
+Si $\rho = 1$, la somme vaut simplement $2N$, donc $\pi(k) = \frac{1}{2N}$ pour tout $k$.
+
+\textit{probabilité d'être en Include.} Par définition, Include correspond aux états $N+1, \dots, 2N$ :
+$$\pi(\text{Inc}) = \sum_{k=N+1}^{2N} \pi(k) = \pi(1) \sum_{k=N+1}^{2N} \rho^{k-1} = \pi(1)\,\rho^N \sum_{j=0}^{N-1}\rho^j = \pi(1)\,\rho^N \cdot \frac{1-\rho^N}{1-\rho}.$$
+En remplaçant $\pi(1) = \frac{1-\rho}{1-\rho^{2N}}$ et en utilisant $1-\rho^{2N} = (1-\rho^N)(1+\rho^N)$ :
+$$\pi(\text{Inc}) = \frac{(1-\rho)\,\rho^N \,(1-\rho^N)}{(1-\rho)(1-\rho^N)(1+\rho^N)} = \frac{\rho^N}{1+\rho^N}.$$
+
+\textit{comportement asymptotique en $N$.} Si $\rho > 1$, alors $\rho^N \to \infty$ quand $N \to \infty$, donc $\pi(\text{Inc}) = \frac{\rho^N}{1+\rho^N} \to 1$.
+$$1 - \pi(\text{Inc}) = \frac{1}{1+\rho^N} \le \frac{1}{\rho^N} = \rho^{-N}.$$
+Le cas $\rho < 1$ se traite de façon symétrique en regardant $\pi(\text{Exc}) = 1 - \pi(\text{Inc})$.
+
+
+
+\begin{corollary}[Cas absorbants]\label{cor:absorb}
+Si $p^- = 0$ et $p^+ > 0$ : l'automate finit presque sûrement par rester bloqué en $2N$, et ce en temps fini. Si $p^+ = 0$ et $p^- > 0$ : symétrique, blocage en 1. Si $p^+ = p^- = 0$ : l'automate ne bouge jamais, il reste à son état initial.
+\end{corollary}
+
+
+
+\section{Quel régime pour chaque littéral}
+
+\subsection{Dérives}
+
+On définit la dérive de $v_i$ comme $\Delta = p^+ - p^-$ (positif = pousse en moyenne vers Include, négatif = vers Exclude), et $\bar\Delta = \bar p^+ - \bar p^-$ pour $\bar v_i$.
+
+\begin{lemma}[Somme des dérives]\label{lem:sum}
+$$\Delta + \bar\Delta = (a-c)\,P(Y=0) + (d-b)\,P(Y=1).$$
+\end{lemma}
+
+\textbf{Calcul.} On part des expressions de la Proposition~\ref{prop:pv} :
+$$\Delta + \bar\Delta = (aA + dD - bC - cB) + (dC + aB - cA - bD).$$
+On regroupe les termes en $a$, en $b$, en $c$, en $d$ :
+$$= a(A+B) + d(C+D) - b(C+D) - c(A+B) = (a-c)(A+B) + (d-b)(C+D).$$
+Or $A + B = P(X_i=0,Y=0) + P(X_i=1,Y=0) = P(Y=0)$, et de même $C+D = P(Y=1)$. D'où le résultat.
+
+\begin{hypothesis}\label{hyp:H}
+$a \le c$ et $d \le b$.
+\end{hypothesis}
+
+
+\begin{corollary}[Non-contradiction]\label{cor:excl}
+Sous l'Hypothèse~\ref{hyp:H}, pour toute loi $P(X,Y)$ : $\Delta + \bar\Delta \le 0$. En particulier $\Delta > 0$ et $\bar\Delta > 0$ ne peuvent pas être vrais en même temps : si $\Delta > 0$ alors $\bar\Delta \le -\Delta < 0$.
+\end{corollary}
+
+\textbf{} Sous l'Hypothèse~\ref{hyp:H}, $(a-c) \le 0$ et $(d-b) \le 0$. Comme $P(Y=0) \ge 0$ et $P(Y=1) \ge 0$, chaque terme du Lemme~\ref{lem:sum} est $\le 0$, donc la somme $\Delta + \bar\Delta \le 0$. Si en plus $\Delta > 0$, on isole $\bar\Delta$ :
+$$\bar\Delta = (\Delta + \bar\Delta) - \Delta \le 0 - \Delta = -\Delta < 0.$$
+Ce corollaire garantit qu'on ne peut jamais avoir simultanément une préférence pour Include sur $v_i$ ET sur $\bar v_i$ le littéral et sa négation ne peuvent pas être poussés vers Include en même temps.
+
+\subsection{Les trois régimes possibles}
+
+\begin{theorem}[Trois régimes]\label{thm:sel}
+Sous l'Hypothèse~\ref{hyp:H}, supposons $\Delta \ne 0$ et $\bar\Delta \ne 0$. On pose $\gamma = \max(\rho, 1/\rho) > 1$ et $\bar\gamma = \max(\bar\rho, 1/\bar\rho) > 1$. Exactement un des trois cas suivants a lieu :
+\begin{itemize}
+\item $\Delta > 0$ (donc $\bar\Delta < 0$), ce qui équivaut à $aA+dD > bC+cB$ :
+$$\lim_{N\to\infty} \limsup_{t\to\infty} P\big((v_t,\bar v_t) \ne (\text{Inc},\text{Exc})\big) = 0.$$
+\item $\bar\Delta > 0$ (donc $\Delta < 0$), ce qui équivaut à $dC+aB > cA+bD$ :
+$$\lim_{N\to\infty} \limsup_{t\to\infty} P\big((v_t,\bar v_t) \ne (\text{Exc},\text{Inc})\big) = 0.$$
+\item $\Delta < 0$ et $\bar\Delta < 0$ :
+$$\lim_{N\to\infty} \limsup_{t\to\infty} P\big((v_t,\bar v_t) \ne (\text{Exc},\text{Exc})\big) = 0.$$
+\end{itemize}
+\end{theorem}
+
+\textbf{Démonstration}
+
+On a $\Delta = p^+ - p^- > 0 \Leftrightarrow p^+ > p^- \Leftrightarrow aA+dD > bC+cB$, directement depuis la Proposition~\ref{prop:pv}, et de même pour $\bar\Delta$. D'après le Corollaire~\ref{cor:excl}, $\Delta$ et $\bar\Delta$ ne peuvent pas être positifs tous les deux. Les trois cas listés (le premier a $\Delta>0$, le deuxième a $\bar\Delta>0$, le troisième a les deux négatifs) couvrent donc toutes les possibilités et sont mutuellement exclusifs, sous la condition $\Delta \ne 0, \bar\Delta \ne 0$.
+
+Reste à établir les bornes annoncées. Par le Théorème~\ref{thm:stat}, comme $\rho = p^+/p^- > 1$ (car $\Delta > 0$) :
+$$P(v_t \ne \text{Inc}) \to \pi(\text{Exc}) \le \gamma^{-N} \quad \text{quand } t \to \infty.$$
+De même, comme $\bar\Delta < 0$ (Corollaire~\ref{cor:excl}), $\bar\rho < 1$, donc :
+$$P(\bar v_t \ne \text{Exc}) \to \pi(\text{Inc côté } \bar v) \le \bar\gamma^{-N}.$$
+Ces deux bornes viennent chacune du Théorème~\ref{thm:stat} appliqué séparément à $v_t$ et à $\bar v_t$ ; on n'a besoin d'aucune hypothèse sur une éventuelle dépendance entre $v_t$ et $\bar v_t$, car chaque automate est étudié individuellement.
+
+On veut à présent borner la probabilité que la paire $(v_t, \bar v_t)$ ne soit \emph{pas} exactement $(\text{Inc}, \text{Exc})$. L'événement $(v_t,\bar v_t) \ne (\text{Inc},\text{Exc})$ se produit si $v_t \ne \text{Inc}$ \emph{ou} $\bar v_t \ne \text{Exc}$ (ou les deux), donc par l'inégalité de l'union :
+$$P\big((v_t,\bar v_t)\ne(\text{Inc},\text{Exc})\big) \le P(v_t \ne \text{Inc}) + P(\bar v_t \ne \text{Exc}).$$
+En prenant $\limsup_{t\to\infty}$ des deux côtés et en reportant les deux bornes précédentes :
+$$\limsup_{t\to\infty} P\big((v_t,\bar v_t)\ne(\text{Inc},\text{Exc})\big) \le \gamma^{-N} + \bar\gamma^{-N},$$
+et comme $\gamma > 1$ et $\bar\gamma > 1$, ce majorant tend vers $0$ quand $N \to \infty$. D'où le résultat annoncé pour le premier cas ; les deux autres s'obtiennent par le même raisonnement, en échangeant les rôles de Inc et Exc.
+
+\section{Plusieurs littéraux en même temps}
+
+On a maintenant $n$ features, donc $2n$ automates au total ($v_1, \bar v_1, \dots, v_n, \bar v_n$).
+
+\begin{theorem}\label{thm:multi}
+On suppose que pour chaque automate $j$ (parmi les $2n$), la préférence stationnaire est non dégénérée : $r_j = p_j^+/p_j^- \ne 1$. On pose $\gamma_j = \max(r_j, 1/r_j) > 1$ et $\gamma_{\min} = \min_j \gamma_j$. Alors, \textbf{sans aucune hypothèse d'indépendance entre les $2n$ automates} :
+$$\limsup_{t\to\infty} P(C_t \ne C^\star) \le \sum_{j=1}^{2n} \frac{1}{1+\gamma_j^N} \le 2n \, \gamma_{\min}^{-N} \xrightarrow[N\to\infty]{} 0,$$
+où $C^\star$ est la configuration de littéraux stationnairement préférée par la dynamique (celle où chaque automate est du bon côté).
+\end{theorem}
+
+\textbf{Démonstration}
+
+Pour chaque automate $j$, notons $A_j$ l'événement ``l'automate $j$ n'est pas dans l'état préféré par sa dynamique stationnaire (Inc ou Exc selon le signe de sa dérive)''. Si aucun des $A_j$ ne se produit, c'est-à-dire si tous les automates sont du bon côté, alors la clause formée est exactement $C^\star$ par définition ; par contraposée :
+$$\{C_t \ne C^\star\} \subseteq A_1 \cup A_2 \cup \dots \cup A_{2n}, \qquad \text{d'où} \qquad P(C_t \ne C^\star) \le \sum_{j=1}^{2n} P(A_j).$$
+
+Par le Théorème~\ref{thm:stat}, que $r_j > 1$ ou $r_j < 1$, la probabilité que l'automate $j$ soit du mauvais côté à l'équilibre vaut $\pi(\text{mauvais côté}) = \dfrac{1}{1+\gamma_j^N}$ (c'est $\pi(\text{Exc})$ si $r_j>1$, ou $\pi(\text{Inc})$ si $r_j<1$, et dans les deux cas la formule se réécrit sous cette forme symétrique en $\gamma_j$). En passant à la limite $t\to\infty$, on obtient $P(A_j) \le \frac{1}{1+\gamma_j^N}$, et en sommant sur les $2n$ automates :
+$$\limsup_{t\to\infty} P(C_t \ne C^\star) \le \sum_{j=1}^{2n} \frac{1}{1+\gamma_j^N}.$$
+
+Il reste à simplifier cette borne. Pour tout $j$, $\frac{1}{1+\gamma_j^N} < \frac{1}{\gamma_j^N} = \gamma_j^{-N}$ (car $1+\gamma_j^N > \gamma_j^N$), et $\gamma_j^{-N} \le \gamma_{\min}^{-N}$ (car $\gamma_j \ge \gamma_{\min}$). En majorant ainsi chacun des $2n$ termes :
+$$\sum_{j=1}^{2n} \frac{1}{1+\gamma_j^N} \le 2n\,\gamma_{\min}^{-N},$$
+et comme $\gamma_{\min} > 1$, ce majorant tend vers $0$ quand $N \to \infty$, à $n$ fixé.
+
+\section{Retrouver la bonne conjonction sous dépendance arbitraire des features}
+
+\subsection{Ce qu'on veut prouver}
+
+\begin{definition}\label{def:ctrue}
+Soit $C_{\text{true}}(x) = \bigwedge_{j \in J^+} x_j \wedge \bigwedge_{j\in J^-}(1-x_j)$ une conjonction fixée, avec $m = |J^+|+|J^-| \ge 1$ littéraux et $J^+ \cap J^- = \emptyset$. On pose $Y^\star = C_{\text{true}}(X)$ (l'étiquette ``vraie'', sans bruit, générée exactement par cette conjonction).
+\end{definition}
+
+L'objectif : montrer que sous des conditions vérifiables sur les données, la configuration stationnairement préférée $C^\star$ du Théorème~\ref{thm:multi} est exactement $C_{\text{true}}$ .
+
+\begin{theorem}\label{thm:identif}
+Sous l'Hypothèse~\ref{hyp:H}, on suppose $Y = Y^\star$ presque sûrement (pas de bruit), la loi jointe de $(X_1,\dots,X_n)$ étant quelconque (dépendante, déséquilibrée). Pour chaque variable $j$, on note $A_j = P(X_j=0,Y=0)$, $B_j = P(X_j=1,Y=0)$, $C_j = P(X_j=0,Y=1)$, $D_j = P(X_j=1,Y=1)$. Alors :
+\begin{itemize}
+\item pour $j \in J^+$ : si $aA_j + dD_j > cB_j$, alors $\Delta_j > 0$ et $\bar\Delta_j < 0$ ;
+\item pour $j \in J^-$ : si $aB_j + dC_j > cA_j$, alors $\bar\Delta_j > 0$ et $\Delta_j < 0$ ;
+\item pour $k \notin J^+\cup J^-$ : si $aA_k+dD_k < bC_k+cB_k$ et $aB_k+dC_k < cA_k+bD_k$, alors $\Delta_k<0$ et $\bar\Delta_k<0$.
+\end{itemize}
+Si ces conditions sont vérifiées pour tous les littéraux concernés, alors $C^\star = C_{\text{true}}$.
+\end{theorem}
+
+\textbf{Démonstration}
+
+Considérons d'abord un littéral $j \in J^+$, qui doit être inclus tel quel. Par définition de $C_{\text{true}}$, si $j \in J^+$ alors $Y^\star=1$ implique nécessairement $X_j=1$, si bien que $C_j = P(X_j=0,Y=1)=0$. En reprenant la formule de la Proposition~\ref{prop:pv}, $\Delta_j = aA_j+dD_j-bC_j-cB_j$, le terme $bC_j$ disparaît donc :
+$$\Delta_j = aA_j+dD_j-cB_j,$$
+qui est positif exactement quand $aA_j+dD_j > cB_j$ — c'est l'hypothèse de l'énoncé pour ce cas. Par le Corollaire~\ref{cor:excl}, $\Delta_j>0$ entraîne alors automatiquement $\bar\Delta_j<0$.
+
+\textit{Cas $j\in J^-$ (littéral dont la négation doit être incluse).} Symétrique : $Y^\star=1 \Rightarrow X_j=0$ (car $C_{\text{true}}$ contient le facteur $(1-x_j)$), donc $D_j=P(X_j=1,Y=1)=0$. En reprenant $\bar\Delta_j = dC_j+aB_j-cA_j-bD_j$ et en supprimant le terme $bD_j$ :
+$$\bar\Delta_j = aB_j+dC_j-cA_j,$$
+positif exactement quand $aB_j+dC_j>cA_j$, et alors $\Delta_j<0$ par le Corollaire~\ref{cor:excl}.
+
+\textit{Cas $k \notin J^+\cup J^-$ (littéral non pertinent).} Ici aucune implication logique ne force une des quatre probabilités jointes à s'annuler $A_k,B_k,C_k,D_k$ peuvent être quelconques. On requiert donc directement les deux inégalités de dérive négative, sans simplification possible :
+$$\Delta_k = aA_k+dD_k-bC_k-cB_k <0, \qquad \bar\Delta_k = dC_k+aB_k-cA_k-bD_k<0.$$
+
+\textit{Conclusion.} Si toutes ces conditions sont vérifiées, chaque automate a la dérive de signe voulu ($v_j>0$ pour $j\in J^+$, $\bar v_j>0$ pour $j\in J^-$, les deux négatifs pour les $k$ non pertinents), donc par le Théorème~\ref{thm:multi}, $C^\star = C_{\text{true}}$.
+
+
+
+\section{Robustesse au bruit sur les étiquettes}
+
+\subsection{Réécriture en espérance}
+
+\begin{proposition}\label{prop:c-func}
+On définit deux fonctions $c, \bar c : \{0,1\}^2 \to \mathbb{R}$ par :
+$$c(0,0)=a,\ c(0,1)=-b,\ c(1,0)=-c,\ c(1,1)=d,$$
+$$\bar c(0,0)=-c,\ \bar c(0,1)=d,\ \bar c(1,0)=a,\ \bar c(1,1)=-b.$$
+Alors, pour toute loi $P(X,Y)$ : $\Delta_j = \mathbb{E}[c(X_j,Y)]$ et $\bar\Delta_j = \mathbb{E}[\bar c(X_j,Y)]$.
+\end{proposition}
+
+\textbf{Vérification.} $\mathbb{E}[c(X_j,Y)] = \sum_{x,y} c(x,y)\,P(X_j=x,Y=y)$. En développant sur les 4 valeurs de $(x,y)$ :
+$$= c(0,0)A_j + c(0,1)C_j + c(1,0)B_j + c(1,1)D_j = aA_j - bC_j - cB_j + dD_j.$$
+C'est exactement $\Delta_j$ (Proposition~\ref{prop:pv}). Même calcul pour $\bar c$ et $\bar\Delta_j$.
+
+
+\subsection{Saut maximal de la fonction}
+
+\begin{lemma}\label{lem:jump}
+Pour $X_j$ fixé et $Y \ne Y'$ dans $\{0,1\}$ :
+$$|c(X_j,Y)-c(X_j,Y')| \le M, \qquad |\bar c(X_j,Y)-\bar c(X_j,Y')|\le M, \qquad M := \max(a+b,\,c+d).$$
+\end{lemma}
+
+\textbf{Calcul.} Il y a deux cas pour $X_j$ :
+\begin{itemize}
+\item $X_j=0$ : $|c(0,0)-c(0,1)| = |a-(-b)| = a+b$.
+\item $X_j=1$ : $|c(1,0)-c(1,1)| = |-c-d| = c+d$.
+\end{itemize}
+Le maximum des deux est $M = \max(a+b,c+d)$. Le même calcul avec $\bar c$ donne les mêmes deux valeurs $a+b$ et $c+d$ (juste échangées entre $X_j=0$ et $X_j=1$), donc la même borne $M$.
+
+\subsection{Théorème de robustesse}
+
+\begin{theorem}\label{thm:bruit}
+Sous l'Hypothèse~\ref{hyp:H}, on reprend les notations du Théorème~\ref{thm:identif}, et on note $\Delta_j^\star, \bar\Delta_j^\star, \Delta_k^\star, \bar\Delta_k^\star$ les dérives calculées avec l'étiquette sans bruit $Y^\star$. On pose :
+$$\mu = \min\Big(\{\Delta_j^\star : j\in J^+\} \cup \{-\bar\Delta_j^\star:j\in J^+\} \cup \{-\Delta_j^\star:j\in J^-\} \cup \{\bar\Delta_j^\star:j\in J^-\}$$
+$$\cup\ \{-\Delta_k^\star : k\notin J^+\cup J^-\} \cup \{-\bar\Delta_k^\star:k\notin J^+\cup J^-\}\Big),$$
+et on suppose $\mu>0$ (les conditions du Théorème~\ref{thm:identif} sont vérifiées sans bruit). Soit $Y$ une étiquette bruitée telle que $\eta := P(Y\ne Y^\star)>0$, sans aucune autre hypothèse sur la nature du bruit. Si
+$$\eta < \frac{\mu}{M}, \qquad M=\max(a+b,c+d),$$
+alors toutes les inégalités du Théorème~\ref{thm:identif} restent vraies avec $Y$ à la place de $Y^\star$, et donc $C^\star = C_{\text{true}}$ malgré le bruit.
+\end{theorem}
+
+\textbf{Démonstration}
+
+Par la Proposition~\ref{prop:c-func}, $\Delta_j = \mathbb{E}[c(X_j,Y)]$, et on note de même $\Delta_j^\star = \mathbb{E}[c(X_j,Y^\star)]$. Comme $X$ suit la même loi dans les deux cas (seule l'étiquette change), on peut coupler $Y$ et $Y^\star$ sur le même espace de probabilité que $X$, de sorte que $\{Y\ne Y^\star\}$ soit exactement l'événement de bruit, de probabilité $\eta$. On a alors :
+$$\Delta_j - \Delta_j^\star = \mathbb{E}\big[(c(X_j,Y)-c(X_j,Y^\star))\,\mathbb{1}[Y\ne Y^\star]\big],$$
+le terme entre crochets étant nul dès que $Y=Y^\star$. Or, par le Lemme~\ref{lem:jump}, sur l'événement $\{Y\ne Y^\star\}$ et quelle que soit la valeur de $X_j$, on a $|c(X_j,Y)-c(X_j,Y^\star)| \le M$. L'espérance d'une variable bornée par $M$ en valeur absolue, multipliée par un indicateur de probabilité $\eta$, est bornée par $M\eta$, donc :
+$$|\Delta_j-\Delta_j^\star| \le M\,\mathbb{E}[\mathbb{1}[Y\ne Y^\star]] = M\eta,$$
+et le même argument, avec les mêmes fonctions $c,\bar c$, donne $|\bar\Delta_j-\bar\Delta_j^\star| \le M\eta$, $|\Delta_k-\Delta_k^\star|\le M\eta$ et $|\bar\Delta_k-\bar\Delta_k^\star|\le M\eta$.
+
+Il reste à voir que ces écarts ne suffisent pas à faire changer de signe les dérives. Supposons $\eta < \mu/M$, c'est-à-dire $M\eta < \mu$. Pour $j\in J^+$, par définition de $\mu$ on a $\Delta_j^\star \ge \mu$, donc
+$$\Delta_j \ge \Delta_j^\star - M\eta \ge \mu - M\eta > 0,$$
+et de même $-\bar\Delta_j^\star \ge \mu$ donne $\bar\Delta_j \le \bar\Delta_j^\star + M\eta \le -\mu + M\eta < 0$. Le même calcul, terme à terme, s'applique à $j\in J^-$ (en utilisant $-\Delta_j^\star\ge\mu$ et $\bar\Delta_j^\star\ge\mu$) et aux $k$ non pertinents (en utilisant $-\Delta_k^\star\ge\mu$ et $-\bar\Delta_k^\star\ge\mu$). Toutes les inégalités strictes du Théorème~\ref{thm:identif} restent donc vraies avec $Y$ à la place de $Y^\star$, ce qui conclut : $C^\star = C_{\text{true}}$ malgré le bruit.
+
+\end{document}

@@ -193,8 +193,12 @@ int main(int argc, char** argv) {
                         if (!rc.applies(ex.x) || rc.isEmpty()) continue;
                         score[c] += alphas[c][m] * (2.0 * rc.clause.output(ex.x) - 1.0);
                     }
-                int pred = 0;
-                for (int cc = 1; cc < numClasses; cc++) if (score[cc] > score[pred]) pred = cc;
+                vector<int> best = {0};
+                for (int cc = 1; cc < numClasses; cc++) {
+                    if (score[cc] > score[best[0]]) best = {cc};
+                    else if (score[cc] == score[best[0]]) best.push_back(cc);
+                }
+                int pred = best[uniform_int_distribution<int>(0, (int)best.size() - 1)(rng)];
                 if (pred == ex.y) correct++;
             }
             accs[run] = 100.0 * correct / testR.size();
@@ -282,8 +286,12 @@ int main(int argc, char** argv) {
                     if (!rc.applies(ex.x) || rc.isEmpty()) continue;
                     score[c] += alphas[c][m] * (2.0 * rc.clause.output(ex.x) - 1.0);
                 }
-            int pred = 0;
-            for (int cc = 1; cc < numClasses; cc++) if (score[cc] > score[pred]) pred = cc;
+            vector<int> best = {0};
+            for (int cc = 1; cc < numClasses; cc++) {
+                if (score[cc] > score[best[0]]) best = {cc};
+                else if (score[cc] == score[best[0]]) best.push_back(cc);
+            }
+            int pred = best[uniform_int_distribution<int>(0, (int)best.size() - 1)(rng)];
             if (pred == ex.y) correct++;
         }
         accs[run] = 100.0 * correct / testRawAll.size();

@@ -57,15 +57,17 @@ struct RandomStumpClause {
 
 int main(int argc, char** argv) {
     string which = argc > 1 ? argv[1] : "xor";
+    if (which != "xor") {
+        cerr << "Dataset inconnu : " << which << ". Seul \"xor\" est supporte.\n";
+        return 1;
+    }
     int n; vector<LabeledExample> trainRawAll, testRawAll;
     int N = 100, total = 1500, M = 100, nbRuns = 10;
     double S = 1, a = 0.3;
 
-    if (which == "xor") {
-        n = 12;
-        trainRawAll = loadDataset("data/NoisyXORTrainingData.txt", n);
-        testRawAll  = loadDataset("data/NoisyXORTestData.txt", n);
-    } 
+    n = 12;
+    trainRawAll = loadDataset("data/NoisyXORTrainingData.txt", n);
+    testRawAll  = loadDataset("data/NoisyXORTestData.txt", n);
 
     M = argc > 2 ? atoi(argv[2]) : 100;         // nombre total de clauses
     nbRuns = argc > 3 ? atoi(argv[3]) : 10;
@@ -74,7 +76,7 @@ int main(int argc, char** argv) {
     if (argc > 6) a = atof(argv[6]);
     if (argc > 7) N = atoi(argv[7]);
 
-    cout << which << " (stumps aleatoires, CHAQUE clause = 1 round AdaBoost independant) : M=" << M
+    cout << which << " (stumps aleatoires, chaque clause = 1 round AdaBoost sequentiel, poids reportes d'un round au suivant) : M=" << M
          << " total/clause=" << total << " S=" << S << " a=" << a << " N=" << N << "\n" << flush;
 
     Params p = {S, a};

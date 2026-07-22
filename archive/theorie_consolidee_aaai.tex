@@ -1,0 +1,609 @@
+\documentclass[12pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[top=2.5cm,bottom=2.5cm,left=2.8cm,right=2.8cm]{geometry}
+\usepackage{parskip}
+\usepackage{booktabs}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\hypersetup{colorlinks=true, linkcolor=blue!60!black}
+
+\newtheorem{theorem}{Théorème}[section]
+\newtheorem{lemma}[theorem]{Lemme}
+\newtheorem{corollary}[theorem]{Corollaire}
+\newtheorem{definition}[theorem]{Définition}
+\theoremstyle{remark}
+\newtheorem{note}{Note}[section]
+
+\newcommand{\Inc}{\ensuremath{\mathrm{Include}}}
+\newcommand{\Exc}{\ensuremath{\mathrm{Exclude}}}
+\newcommand{\vbar}{\bar{v}}
+
+\begin{document}
+
+\begin{center}
+  {\LARGE\bfseries Théorie consolidée de la règle à 4 cas}\\[6pt]
+  {\large Automate isolé, sélection de littéral, extension multi-bit --- base pour la Section~4 (AAAI)}
+\end{center}
+\vspace{0.5em}\hrule\vspace{1.5em}
+
+\tableofcontents
+\newpage
+
+% ======================================================
+\section{Cadre général}
+% ======================================================
+
+Soit $(X,Y)\in\{0,1\}^2$ un couple aléatoire de loi jointe $P(X,Y)$ arbitraire (pas
+nécessairement IDENTITY/NOT), et $(X_t,Y_t)_{t\ge1}\overset{\text{i.i.d.}}{\sim}P$
+la suite des observations présentées à la règle -- hypothèse maintenue dans
+toute la suite du document, nécessaire pour que chaque automate soit une
+chaîne de Markov homogène à probabilités de transition constantes $p^+,p^-$
+(sans elle, si les observations sont corrélées dans le temps ou si $P$ dérive,
+l'automate seul n'est pas garanti être une chaîne de Markov homogène). Deux
+automates gouvernent le littéral $x$ et sa négation : $v$ (état
+$s_1\in\{1,\ldots,2N\}$) et $\vbar$ (état $s_2$), avec
+$\mathrm{included}(s)=\mathbf 1[s>N]$. La règle à 4 cas, appliquée à chaque
+observation $(x,y)$ :
+
+\begin{center}
+\begin{tabular}{ccll}
+\toprule
+$x$ & $y$ & Action sur $v$ & Action sur $\vbar$ \\
+\midrule
+0 & 0 & $\texttt{versInclude}(S)$ & $\texttt{versExclude}(S)$ \\
+0 & 1 & $\texttt{versExclude}(a)$ & rien \\
+1 & 0 & $\texttt{versExclude}(S)$ & $\texttt{versInclude}(S)$ \\
+1 & 1 & rien & $\texttt{versExclude}(a)$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+avec $S,a\in(0,1]$. En agrégeant sur $(X,Y)$, les probabilités de transition
+intérieures de $v$ et $\vbar$ s'écrivent, pour \emph{toute} loi jointe $P$ :
+\begin{align}
+  p^+ &= S\cdot P(X{=}0,Y{=}0), &
+  p^- &= S\cdot P(X{=}1,Y{=}0) + a\cdot P(X{=}0,Y{=}1); \label{eq:pv}\\
+  \bar p^+ &= S\cdot P(X{=}1,Y{=}0), &
+  \bar p^- &= S\cdot P(X{=}0,Y{=}0) + a\cdot P(X{=}1,Y{=}1). \label{eq:pvbar}
+\end{align}
+
+\begin{note}[Lien avec la paramétrisation $(c,p_1,p_0)$]
+Le cadre IDENTITY/NOT déjà utilisé dans \textit{Démonstration de convergence}
+($c{=}P(X{=}1)$, cette référence notant $a{=}P(Y{=}1\mid X{=}1)$ et
+$b{=}P(Y{=}1\mid X{=}0)$ -- renommés ici $p_1,p_0$ pour éviter toute collision
+avec le paramètre de règle $a$ introduit ci-dessous, sans lien avec ces
+probabilités de bruit) est le cas particulier
+$P(0,0){=}(1{-}c)(1{-}p_0)$, $P(1,0){=}c(1{-}p_1)$, $P(0,1){=}(1{-}c)p_0$,
+$P(1,1){=}c\,p_1$. Toutes les formules ci-dessous se réduisent aux formules
+déjà publiées dans \textit{Démonstration de convergence} en substituant ces
+expressions --- vérifié terme à terme, aucune contradiction.
+\end{note}
+
+% ======================================================
+\section{Théorème 1 --- loi stationnaire exacte (cas général)}
+% ======================================================
+
+\begin{theorem}[Loi stationnaire, automate isolé]\label{thm:stationnaire}
+Soit $\rho = p^+/p^-$ (resp.\ $\bar\rho=\bar p^+/\bar p^-$), avec $p^+,p^->0$
+(cas ergodique, aucune des deux directions n'est bloquée). La chaîne $(v(t))_t$
+est irréductible et apériodique sur $\{1,\ldots,2N\}$, et sa loi stationnaire
+est géométrique, de normalisation exacte :
+\[
+  \pi(k) = \frac{(1-\rho)\,\rho^{k-1}}{1-\rho^{2N}} \ (\rho\ne1), \qquad
+  \pi(k) = \frac1{2N} \ (\rho=1), \qquad
+  \boxed{\pi(\Inc) = \sum_{k>N}\pi(k) = \frac{\rho^N}{1+\rho^N}.}
+\]
+Si $\rho>1$, $\pi(\Inc)>\tfrac12$ et $\pi(\Inc)\xrightarrow[N\to\infty]{}1$, avec
+$1-\pi(\Inc)\le\rho^{-N}$ ; si $\rho<1$, $\pi(\Exc)\to1$ symétriquement. De plus,
+par le théorème ergodique pour les chaînes de Markov irréductibles apériodiques
+à espace d'états fini,
+\[
+  \frac1T\sum_{t=1}^{T}\mathbf 1[v_t>N] \xrightarrow[T\to\infty]{\text{p.s.}} \pi(\Inc),
+\]
+ce qui relie directement la loi stationnaire à la métrique expérimentale
+« fraction du temps passé dans la bonne action ». Idem pour $\vbar$ avec $\bar\rho$.
+\end{theorem}
+
+\begin{proof}
+Irréductibilité : chaîne de naissance-mort à transitions intérieures
+strictement positives ($p^+,p^->0$). Apériodicité : \emph{ne dépend pas} de
+$1-p^+-p^->0$ (cette quantité n'est pas nécessairement strictement positive) ;
+elle découle des boucles réflexives aux deux bornes de l'espace d'états -- en
+$k=1$, une poussée supplémentaire vers $\Exc$ laisse l'état inchangé
+($\max(1,k-1)=1$), et en $k=2N$, une poussée supplémentaire vers $\Inc$ laisse
+l'état inchangé -- ce qui donne un état apériodique, et donc, par
+irréductibilité, une chaîne entièrement apériodique. Unicité de $\pi$ par le
+théorème ergodique ; forme géométrique par bilan détaillé
+($\pi(k)p^+=\pi(k{+}1)p^- \Rightarrow \pi(k{+}1)/\pi(k)=\rho$ constant) ;
+somme géométrique pour $\pi(\Inc)=\sum_{k>N}\pi(k)$. La convergence p.s. de la
+moyenne temporelle est le théorème ergodique standard appliqué à l'indicatrice
+$\mathbf 1[\cdot>N]$. Aucune hypothèse sur la forme de $P(X,Y)$ n'est utilisée
+dans cette preuve : elle ne dépend que du rapport $\rho=p^+/p^-$, quelle que
+soit la loi jointe sous-jacente.
+\end{proof}
+
+\begin{note}[Terminologie : convergence en distribution, pas absorption]
+Le terme \emph{absorption} est réservé au cas unidirectionnel
+(Corollaire~\ref{cor:unidirectionnel}, $p^-=0$ ou $p^+=0$). Dans le cas
+ergodique ($p^+,p^->0$), l'automate ne se fixe \emph{jamais} définitivement :
+il continue de se déplacer indéfiniment et converge seulement \emph{en
+distribution} vers $\pi$. « Sans bruit » n'implique donc pas absorption : pour
+une conjonction comme $Y=X_1\wedge X_2$, un automate peut recevoir des
+poussées dans les deux sens même en l'absence de bruit sur $Y$, car les autres
+combinaisons de $(X_1,X_2)$ jouent un rôle symétrique à celui du bruit.
+\end{note}
+
+\begin{corollary}[Cas unidirectionnel absorbant]\label{cor:unidirectionnel}
+Trois cas distincts, à distinguer explicitement :
+\begin{itemize}
+  \item $p^-=0,\ p^+>0$ : chaîne de naissance pure (aucune poussée vers
+  $\Exc$), absorbée p.s.\ en $2N$ en temps fini, $\rho\to\infty$. Deux temps
+  d'arrêt distincts sont pertinents et \emph{ne doivent pas être confondus} :
+  le temps d'\emph{absorption complète} en $2N$,
+  $\mathbb E[T_{2N}]=(2N-s_0)/p^+$ (loi négative binomiale, cf.\ Lemme~3.1 de
+  \textit{Démonstration de convergence}), et le temps, généralement plus
+  court, de \emph{première entrée dans la région $\Inc$}
+  (franchissement de $N$), pertinent pour le comportement du classifieur :
+  $\mathbb E[T_{\Inc}]=(N+1-s_0)_+/p^+$ (où $(\cdot)_+=\max(\cdot,0)$, nul si
+  $s_0>N$, l'automate étant déjà inclus) ;
+  \item $p^+=0,\ p^->0$ : symétrique, absorption p.s.\ en $1$,
+  $\mathbb E[T_1]=(s_0-1)/p^-$, première entrée dans $\Exc$ (franchissement de
+  $N{+}1$) en $\mathbb E[T_{\Exc}]=(s_0-N)_+/p^-$ ;
+  \item $p^+=p^-=0$ : l'automate ne reçoit \emph{aucun} signal ; chaque état
+  est trivialement absorbant au sens où aucune transition ne se produit
+  jamais (et non « non absorbant » -- il n'y a simplement pas de dynamique du
+  tout). L'automate reste figé à son état initial $s_0$, cas exclu du
+  Théorème~\ref{thm:multibit}.
+\end{itemize}
+Les deux premiers cas sont les cas particuliers $\rho=\infty$ et $\rho=0$ du
+Théorème~\ref{thm:stationnaire}.
+\end{corollary}
+
+% ======================================================
+\section{Lemme de non-contradiction}
+% ======================================================
+
+\begin{lemma}[Exclusion des dérives simultanément positives]\label{lem:noncontradiction}
+Notons $\Delta = p^+-p^-$ et $\bar\Delta=\bar p^+-\bar p^-$ (les drifts nets de
+$v$ et $\vbar$). Alors, pour toute loi $P(X,Y)$ :
+\[
+  \boxed{\Delta+\bar\Delta = -a\cdot P(Y{=}1) \;\le\; 0.}
+\]
+\end{lemma}
+
+\begin{proof}
+D'après \eqref{eq:pv}--\eqref{eq:pvbar} :
+\begin{align*}
+  \Delta &= S\,P(0,0) - S\,P(1,0) - a\,P(0,1), \\
+  \bar\Delta &= S\,P(1,0) - S\,P(0,0) - a\,P(1,1).
+\end{align*}
+En sommant, les termes en $S\,P(0,0)$ et $S\,P(1,0)$ s'annulent deux à deux :
+\[
+  \Delta+\bar\Delta = -a\bigl[P(0,1)+P(1,1)\bigr] = -a\,P(Y{=}1) \le 0
+\]
+puisque $a>0$ et $P(Y{=}1)\ge0$.
+\end{proof}
+
+\begin{note}[Interprétation : exclusion asymptotique, pas instantanée]
+$v$ et $\vbar$ ne peuvent donc jamais avoir \emph{simultanément} un drift net
+strictement positif ($\Delta>0$ et $\bar\Delta>0$) : la règle empêche la
+configuration « contradiction » ($x\wedge\neg x$, ligne 1 du tableau
+sémantique) d'être la configuration \emph{asymptotiquement favorisée}. Elle
+n'empêche en revanche pas les deux drifts d'être simultanément
+\emph{négatifs} ($\Delta<0$ et $\bar\Delta<0$, régime neutre du
+Théorème~\ref{thm:selection}) : le lemme exclut seulement la double
+inclusion, pas la double exclusion. Il ne dit rien non plus sur l'état à un
+instant $t$ fini : par le Théorème~\ref{thm:stationnaire}, chaque automate
+garde une probabilité stationnaire résiduelle de se trouver « du mauvais
+côté », décroissant exponentiellement en $N$ \emph{dès lors que $\rho\ne1$}
+(hors régime frontière -- à $\rho=1$, cette probabilité reste exactement
+$\tfrac12$, cf.\ Note « Régime frontière », Section~4) mais jamais strictement
+nulle pour $N$ fini. La contradiction transitoire (les deux automates
+simultanément en $\Inc$) n'est donc pas structurellement impossible à tout
+instant ; elle est seulement exponentiellement rare pour $N$ grand hors
+régime frontière. L'égalité $\Delta+\bar\Delta=0$ n'a lieu que si $P(Y{=}1)=0$
+(aucun exemple positif) : cas dégénéré déjà identifié comme limite
+(\textit{Démonstration de convergence}, Remarque sur $c=1$).
+\end{note}
+
+\begin{corollary}[Asymétrie stricte entre littéral et négation]\label{cor:asymetrie}
+Si $\Delta>0$, alors $\bar\Delta = -a\,P(Y{=}1) - \Delta < 0$
+strictement (et réciproquement, par symétrie du Lemme~\ref{lem:noncontradiction}).
+Dès que $x$ est asymptotiquement favorisé, $\neg x$ est \emph{strictement}
+défavorisé -- pas seulement « non favorisé ».
+\end{corollary}
+
+% ======================================================
+\section{Critère de sélection sous distribution arbitraire}
+% ======================================================
+
+\begin{theorem}[Sélection, cas général -- régimes non dégénérés]\label{thm:selection}
+Sous la règle à 4 cas avec $S,a>0$ fixés, supposons les observations
+$(X_t,Y_t)_{t\ge1}$ i.i.d.\ de loi $P$, et $\Delta\ne0$, $\bar\Delta\ne0$
+(hypothèse de non-dégénérescence, cf.\ Note ci-dessous pour le cas frontière).
+Notons $\gamma=\max(\rho,1/\rho)>1$ et $\bar\gamma=\max(\bar\rho,1/\bar\rho)>1$
+(de sorte que, par le Théorème~\ref{thm:stationnaire}, la probabilité que $v$
+--resp.\ $\vbar$-- soit du mauvais côté est toujours $\le\gamma^{-N}$ --resp.\
+$\bar\gamma^{-N}$--, quel que soit le signe de $\Delta$). Alors :
+\begin{align}
+  \Delta>0\ (\rho>1,\ \pi(\Inc)\to1) &\iff S\,P(0,0) \;>\; S\,P(1,0)+a\,P(0,1); \label{eq:crit_v}\\
+  \bar\Delta>0\ (\bar\rho>1,\ \bar\pi(\Inc)\to1) &\iff S\,P(1,0) \;>\; S\,P(0,0)+a\,P(1,1). \label{eq:crit_vbar}
+\end{align}
+Par le Corollaire~\ref{cor:asymetrie}, \eqref{eq:crit_v} et \eqref{eq:crit_vbar}
+sont mutuellement exclusifs, et sous l'hypothèse de non-dégénérescence les
+trois régimes suivants sont exhaustifs (on énonce directement la convergence
+en probabilité du couple $(v_t,\vbar_t)$, \emph{sans} invoquer une loi
+stationnaire jointe -- la chaîne jointe $(v_t,\vbar_t)_t$ n'est pas
+nécessairement irréductible, cf.\ Remarque ci-après) :
+\begin{itemize}
+  \item \textbf{Régime de sélection de $x$} : $\Delta>0$, donc
+  (Corollaire~\ref{cor:asymetrie}) $\bar\Delta<0$ $\Rightarrow$
+  $\lim_{t\to\infty}\mathbb P\bigl((v_t,\vbar_t)\ne(\Inc,\Exc)\bigr)
+  \le\gamma^{-N}+\bar\gamma^{-N}\xrightarrow[N\to\infty]{}0$ :
+  la structure $x$ est asymptotiquement préférée.
+  \item \textbf{Régime de sélection de $\neg x$} : $\bar\Delta>0$, donc $\Delta<0$
+  $\Rightarrow$
+  $\lim_{t\to\infty}\mathbb P\bigl((v_t,\vbar_t)\ne(\Exc,\Inc)\bigr)
+  \le\gamma^{-N}+\bar\gamma^{-N}\xrightarrow[N\to\infty]{}0$ :
+  la structure $\neg x$ est asymptotiquement préférée.
+  \item \textbf{Régime d'exclusion des deux littéraux} : $\Delta<0$ \emph{et}
+  $\bar\Delta<0$ $\Rightarrow$
+  $\lim_{t\to\infty}\mathbb P\bigl((v_t,\vbar_t)\ne(\Exc,\Exc)\bigr)
+  \le\gamma^{-N}+\bar\gamma^{-N}\xrightarrow[N\to\infty]{}0$ :
+  la structure tautologique est asymptotiquement préférée, $x$ est ignoré.
+\end{itemize}
+La borne $\gamma^{-N}+\bar\gamma^{-N}$ sur le $\lim_t$ n'est valable qu'une
+fois la chaîne proche de sa loi stationnaire (ou si elle y est initialisée) --
+elle ne dit rien sur $\mathbb P((v_t,\vbar_t)\ne\cdot)$ à un instant $t$ petit
+et une initialisation arbitraire, d'où le $\lim_{t\to\infty}$ et non une
+égalité pour tout $t$. Pour tout $N$ fini, l'automate est ergodique et fluctue
+selon $\pi_N$ ; c'est la limite $N\to\infty$ (après celle en $t$) qui donne la
+sélection presque certaine (cf.\ Note terminologique, Section~2). Sous une loi
+$P(X,Y)$ arbitraire, la structure ainsi préférée n'est pas nécessairement la
+clause génératrice ni la clause Bayes-optimale -- une variable peut être
+sélectionnée parce qu'elle est corrélée à une variable pertinente sans
+appartenir au concept cible.
+\end{theorem}
+
+\begin{proof}
+\eqref{eq:crit_v} : $\Delta>0 \iff p^+>p^- \iff S\,P(0,0) > S\,P(1,0)+a\,P(0,1)$
+directement depuis \eqref{eq:pv}. Identique pour \eqref{eq:crit_vbar}.
+L'exclusion mutuelle et l'implication $\Delta>0\Rightarrow\bar\Delta<0$
+découlent du Corollaire~\ref{cor:asymetrie}. Sous $\Delta,\bar\Delta\ne0$, les
+quatre combinaisons de signes $(\mathrm{sgn}\,\Delta,\mathrm{sgn}\,\bar\Delta)$
+se réduisent aux trois listées, la combinaison $(+,+)$ étant exclue par le
+corollaire. Passage de la convergence marginale à la convergence jointe (par
+exemple pour le régime IDENTITY, $\Delta>0$, donc $\rho>1$ et $\bar\rho<1$,
+soit $\gamma=\rho$ et $\bar\gamma=1/\bar\rho$) : en prenant d'abord
+$\lim_{t\to\infty}$ (le Théorème~\ref{thm:stationnaire} borne la loi
+\emph{stationnaire}, atteinte seulement asymptotiquement en $t$ depuis une
+initialisation arbitraire -- l'inégalité ci-dessous serait fausse pour un $t$
+petit), puis par union bound,
+\[
+  \lim_{t\to\infty}\mathbb P\bigl((v_t,\vbar_t)\ne(\Inc,\Exc)\bigr)
+  \le \lim_{t\to\infty}\mathbb P(v_t\ne\Inc) + \lim_{t\to\infty}\mathbb P(\vbar_t\ne\Exc)
+  \le \gamma^{-N} + \bar\gamma^{-N} \xrightarrow[N\to\infty]{} 0,
+\]
+sans jamais supposer l'indépendance de $v_t$ et $\vbar_t$ (l'union bound ne
+requiert que les bornes marginales du Théorème~\ref{thm:stationnaire},
+valables même si $v_t$ et $\vbar_t$ sont corrélés). Les deux autres régimes se traitent de
+façon identique. \emph{Attention} : $\bar\gamma^{-N}=\bar\rho^{N}$ ici (et non
+$\bar\rho^{-N}$, puisque $\bar\rho<1$) -- c'est pour éviter précisément cette
+confusion de signe que $\gamma=\max(\rho,1/\rho)$ est défini une fois pour
+toutes, indépendamment du sens de la préférence.
+\end{proof}
+
+\begin{remark}[Non-irréductibilité possible de la chaîne jointe]
+La chaîne $(v_t,\vbar_t)_t$ est bien une chaîne de Markov homogène (les deux
+composantes sont mises à jour par la même observation $(X_t,Y_t)$ i.i.d.\ à
+chaque pas), mais elle n'est pas nécessairement irréductible sur
+$\{1,\ldots,2N\}^2$ tout entier : par exemple avec $S=1$ et $P(Y{=}1)=0$, une
+poussée vers $\Inc$ sur $v$ s'accompagne toujours d'une poussée vers $\Exc$ sur
+$\vbar$ (et réciproquement), de sorte que $v_t+\vbar_t$ est conservé tant
+qu'aucun des deux automates n'atteint une borne -- la chaîne jointe reste alors
+confinée à une sous-classe déterminée par l'initialisation. C'est précisément
+pour cette raison que la preuve ci-dessus évite d'invoquer une loi stationnaire
+jointe $\Pi_N$ et travaille directement avec $\lim_t \mathbb
+P((v_t,\vbar_t)\ne\cdot)$, borné via l'union bound sur les deux marginales
+seules -- un argument qui ne requiert aucune irréductibilité de la chaîne
+jointe.
+\end{remark}
+
+\begin{note}[Régime frontière $\Delta=0$ ou $\bar\Delta=0$]
+Si l'hypothèse de non-dégénérescence est levée, $\Delta=0$ donne $\rho=1$ et,
+par le Théorème~\ref{thm:stationnaire}, $\pi(\Inc)=\tfrac12$ : l'automate
+correspondant n'a stationnairement \emph{aucune} préférence -- ni convergence
+vers $\Inc$, ni vers $\Exc$ -- contrairement à ce qu'impliquerait une lecture
+naïve de « les deux inégalités sont fausses ». Ce cas frontière correspond à
+une égalité exacte entre deux quantités continues de $P(X,Y)$ et est donc de
+mesure nulle pour une loi jointe générique, mais il doit être exclu
+explicitement (hypothèse $\Delta,\bar\Delta\ne0$) pour que les trois régimes du
+Théorème~\ref{thm:selection} soient effectivement exhaustifs et mutuellement
+exclusifs.
+\end{note}
+
+\begin{note}[Unification de deux résultats déjà établis]
+Ce théorème unique remplace et généralise à la fois le résultat sur le
+« littéral pertinent » (\textit{Convergence de la clause conditionnée},
+Théorème~3.1, cas $p_1\ne p_0$ dans la notation $(c,p_1,p_0)$ de cette
+référence, où elle écrit $a,b$) et celui sur la « neutralité » (\emph{ibid.},
+Théorème~4.2, cas $p_1{=}p_0{=}p_y$ restreint) : les deux étaient des cas
+particuliers de la même paire d'inégalités \eqref{eq:crit_v}--\eqref{eq:crit_vbar},
+simplement exprimées dans la paramétrisation $(c,p_1,p_0)$ plutôt qu'en
+$P(X,Y)$ général. Le seuil $S_{\text{bas}}(j)$ et le seuil $S_i^{\max}$ déjà publiés se
+retrouvent en isolant $S$ dans \eqref{eq:crit_v} pour les deux régimes
+$P(0,1)>0$ (seuil bas) ou distribution symétrique (seuil haut) --- calcul
+inchangé, notation unifiée.
+\end{note}
+
+% ======================================================
+\section{Extension multi-bit : borne de concentration pour une clause}
+% ======================================================
+
+\begin{theorem}[Concentration multi-bit]\label{thm:multibit}
+Soit une clause à $n$ features, dont $K$ fixées par la condition ; les $d=n-K$
+restantes sont gouvernées par $2d$ automates. Pour chaque automate $j$, en
+supposant sa préférence stationnaire non dégénérée, notons
+$r_j=p_j^+/p_j^-$, $\gamma_j=\max(r_j,1/r_j)>1$, et
+$\gamma_{\min}=\min_{1\le j\le 2d}\gamma_j$. Notons $C^\star$ la structure
+préférée sous $P$ (Théorème~\ref{thm:selection}) et $C_t$ la clause
+effectivement calculée à l'instant $t$. Alors, sans hypothèse d'indépendance
+entre automates :
+\[
+  \boxed{\lim_{t\to\infty}\mathbb P\bigl(C_t\ne C^\star\bigr)
+  \;\le\; \sum_{j=1}^{2d} \frac1{1+\gamma_j^N}
+  \;\le\; 2(n-K)\cdot\gamma_{\min}^{-N}.}
+\]
+\end{theorem}
+
+\begin{proof}
+Si $C_t\ne C^\star$, au moins un des $2(n-K)$ automates est du mauvais côté.
+Le résultat suit de la borne stationnaire à un seul automate
+(Théorème~\ref{thm:stationnaire}) et de l'union bound, qui ne requiert aucune
+indépendance entre les automates (juste leurs bornes marginales).
+\end{proof}
+
+\begin{note}[Cas exclus et portée du résultat]
+Le cas frontière $r_j=1$ et le cas dégénéré $p_j^+=p_j^-=0$ (aucun signal) sont
+exclus par l'hypothèse de non-dégénérescence, en cohérence avec
+$\Delta,\bar\Delta\ne0$ du Théorème~\ref{thm:selection} ; un automate absorbant
+(Corollaire~\ref{cor:unidirectionnel}) est couvert par la convention
+$\gamma_j=\infty$. La borne utilise nécessairement le \emph{pire} automate
+($\gamma_{\min}$), pas le meilleur. Enfin, $C_t\ne C^\star$ est un
+\emph{mismatch structurel} (deux structures différentes peuvent calculer la
+même fonction logique par coïncidence), pas nécessairement une erreur de
+classification ; et la borne porte sur la clause interne conditionnelle, la
+condition elle-même étant fixée par construction (sa couverture fait l'objet d'un
+résultat séparé, Section~6).
+\end{note}
+
+\begin{note}[Lien avec le conditionnement $K$]
+La loi $P(X,Y)$ de la Section~1 est ici la loi conditionnelle sur le
+sous-ensemble applicable $D_F$ (les exemples satisfaisant la condition sur les $K$
+features gelées). Sans conditionnement ($K=0$, donc $d=n$), le théorème
+s'applique tel quel à la clause entière -- mais rien ne garantit alors que
+chaque littéral individuel tombe dans le régime « pertinent » plutôt que
+« neutre » pour une cible à $m\ge2$ littéraux : c'est exactement la limite déjà
+documentée (échec de \texttt{hybrid\_coord\_4case.cpp}, test $K{=}0$ sur Iris à
+22,7\,\%, sous le hasard).
+\end{note}
+
+% ======================================================
+\section{Couverture des conditions aléatoires : garantie d'ensemble}
+% ======================================================
+
+Il faut séparer nettement deux sources d'erreur bien distinctes : (1) la
+probabilité de \emph{tirer une bonne condition} (propriété fixe, déterministe
+une fois $F,v$ choisis) et (2) sachant la condition bonne, la probabilité que
+la clause associée \emph{apprenne effectivement} la bonne structure
+(propriété probabiliste, dépendant de $N$ et $t$ -- déjà bornée par le
+Théorème~\ref{thm:multibit}). Cette section formalise la première, puis les
+combine, reliant $M$, $K$, $n$ et $N$ au ratio $M/(2^K\binom{n}{K})$ déjà
+observé empiriquement (Section~\ref{sec:validation}).
+
+Il existe $C_K=2^K\binom{n}{K}$ conditions possibles : le choix de $K$
+features parmi $n$, et une valeur binaire pour chacune.
+
+\begin{definition}[Condition utile]\label{def:condition-utile}
+Fixons un concept cible (un sous-ensemble de littéraux pertinents parmi les
+$n$). Une condition $(F,v)$, $F\subseteq\{1,\ldots,n\}$, $|F|=K$, $v\in\{0,1\}^K$,
+est dite \emph{utile} pour ce concept si, sous la loi conditionnelle
+$P(X,Y\mid X_F=v)$, la règle sélectionne correctement (au sens du
+Théorème~\ref{thm:selection}) les littéraux cibles parmi les $n-K$ features
+non fixées. Notons $G^\star\ge1$ le nombre de conditions utiles parmi les
+$C_K$ possibles (hypothèse d'identifiabilité minimale : au moins une
+condition révèle le concept), et
+\[
+  q = \frac{G^\star}{C_K} = \frac{G^\star}{2^K\binom{n}{K}}
+\]
+la probabilité qu'une condition tirée uniformément soit utile.
+\end{definition}
+
+\begin{theorem}[Couverture des conditions utiles]\label{thm:coverage}
+Si les $M$ clauses tirent leur condition indépendamment et uniformément
+(garanti par le code : \texttt{shuffle(pool.begin(), pool.end(), rng)} donne
+un sous-ensemble de $K$ features uniforme, et
+\texttt{vals.push\_back(valDist(rng))} tire chaque valeur par un
+pile-ou-face indépendant) :
+\[
+  \boxed{\mathbb P(\text{au moins une condition utile est tirée})
+  = 1-(1-q)^M \;\ge\; 1-e^{-Mq}.}
+\]
+\end{theorem}
+
+\begin{proof}
+Chaque clause tire une condition utile avec probabilité $q$, indépendamment
+des autres. La probabilité qu'aucune des $M$ clauses n'en tire une vaut
+$(1-q)^M$ ; le complémentaire donne l'égalité, et $1-q\le e^{-q}$ donne la
+forme exponentielle.
+\end{proof}
+
+\begin{corollary}[Garantie de présence d'une clause correcte]\label{cor:end-to-end}
+Supposons que, pour toute condition utile, la probabilité (asymptotique en
+$t$) que la clause apprise soit structurellement incorrecte soit bornée par
+$\varepsilon_N=2(n-K)\gamma_{\min}^{-N}$ (Théorème~\ref{thm:multibit}). Alors,
+par union bound sur les deux complémentaires (« aucune condition utile
+tirée », Théorème~\ref{thm:coverage} ; et, pour une clause ayant reçu une
+condition utile, « elle n'apprend pas la bonne structure », Théorème~\ref{thm:multibit}) :
+\[
+  \mathbb P(\text{l'ensemble contient au moins une clause correcte})
+  \;\ge\; 1-e^{-Mq}-\varepsilon_N = 1-e^{-Mq}-2(n-K)\gamma_{\min}^{-N}.
+\]
+\end{corollary}
+
+\begin{note}[Deux sources d'erreur distinctes, et ce que ça ne prouve pas]
+Point important : ne pas appeler une clause « utile » avant son entraînement
+-- \emph{la condition est utile} (propriété fixe de $P$ et du concept cible,
+indépendante de $N$ et $t$), \emph{puis} la clause peut être apprise
+correctement ou non (propriété probabiliste du Théorème~\ref{thm:multibit}).
+Ce corollaire garantit seulement l'existence d'\emph{au moins une} clause
+correcte dans l'ensemble, pas que le vote final (pondéré par $\alpha_m$,
+Section~6) la retient effectivement ni qu'elle domine les autres clauses au
+moment du classement. Combiner cette garantie de couverture avec une garantie
+sur le poids relatif $\alpha_m$ des clauses correctes reste un travail futur.
+\end{note}
+
+% ======================================================
+\section{Analyse par round sous les distributions induites par le boosting}
+% ======================================================
+
+\begin{theorem}[Caractérisation conditionnelle d'un round de boosting -- distribution d'entraînement effective $Q_m$]\label{thm:boosting}
+Soit, au round $m$, $S_m$ le sous-ensemble applicable de la clause (les
+exemples satisfaisant son conditionnement) et $w_i$ les poids AdaBoost
+courants sur $S_m$. Notons $W_m^+=\sum_{i\in S_m:\,y_i=1}w_i$ et
+$W_m^-=\sum_{i\in S_m:\,y_i=0}w_i$. Le code d'entraînement
+(\texttt{modele\_xor.cpp}, \texttt{modele\_multiclasse.cpp}) ne tire
+\emph{pas} directement selon la distribution pondérée
+$D_m(i)=w_i/\sum_{j\in S_m}w_j$ : il choisit d'abord la classe positive ou
+négative avec probabilité $\tfrac12$ chacune \emph{si les deux sont non vides},
+sinon il échantillonne exclusivement dans l'unique classe présente ; si $S_m$
+est vide, la clause n'est pas entraînée du tout ($\alpha_m=0$,
+\texttt{if (subsetIdx.empty()) \{ alphas.push\_back(0.0); continue; \}}). La
+distribution réellement échantillonnée pour mettre à jour les automates est
+donc
+\[
+  Q_m(i) = \begin{cases}
+    \tfrac12\cdot\dfrac{w_i}{W_m^+}, & i\in S_m,\ y_i=1,\ W_m^+>0,\ W_m^->0,\\[2mm]
+    \tfrac12\cdot\dfrac{w_i}{W_m^-}, & i\in S_m,\ y_i=0,\ W_m^+>0,\ W_m^->0,\\[2mm]
+    \dfrac{w_i}{W_m^+}, & i\in S_m,\ y_i=1,\ W_m^->0 \text{ faux (sous-ensemble pur positif)},\\[2mm]
+    \dfrac{w_i}{W_m^-}, & i\in S_m,\ y_i=0,\ W_m^+>0 \text{ faux (sous-ensemble pur négatif)},\\[2mm]
+    0, & i\notin S_m,
+  \end{cases}
+\]
+non définie (clause ignorée, $\alpha_m=0$) si $W_m^+=W_m^-=0$ (i.e.\ $S_m=\emptyset$).
+Conditionnellement à l'historique du boosting et au tirage aléatoire du stump
+(sous-ensemble conditionnant) du round $m$, et sur l'évènement $S_m\ne\emptyset$,
+les Théorèmes~\ref{thm:stationnaire}, \ref{thm:selection}, \ref{thm:multibit}
+s'appliquent à la clause $m$, \emph{chacun sous ses hypothèses respectives},
+avec $P(X,Y)$ remplacée par $Q_m(X,Y)$ -- \emph{et non} par $D_m$. En
+particulier, sur un sous-ensemble pur ($W_m^+=0$ ou $W_m^-=0$) ou
+proche de la frontière ($r_j\approx1$ pour certains automates $j$), certains
+littéraux de la clause $m$ peuvent relever du Corollaire~\ref{cor:unidirectionnel}
+(absorbant) plutôt que du régime ergodique du Théorème~\ref{thm:stationnaire},
+ou se trouver dans le régime frontière exclu du Théorème~\ref{thm:selection} ;
+le Théorème~\ref{thm:multibit} ne s'applique alors qu'aux littéraux non
+dégénérés de la clause $m$.
+\end{theorem}
+
+\begin{proof}
+Les probabilités de transition \eqref{eq:pv}--\eqref{eq:pvbar} sont des
+fonctions linéaires de la loi utilisée pour générer les tirages effectivement
+présentés à l'automate ; substituer $Q_m$ à $P$ ne change aucune étape des
+preuves précédentes, qui ne supposent jamais une forme particulière de $P$.
+$Q_m$, et non $D_m$, est la loi qui génère les $(x,y)$ réellement vus par
+\texttt{updateMasked} pendant le round $m$ : la ligne
+\texttt{useNeg = subNeg.empty() ? false : (subPos.empty() ? true : !flip(0.5))}
+donne exactement les quatre cas ci-dessus (rééquilibré si les deux classes sont
+présentes, sinon échantillonnage pur dans l'unique classe présente). $D_m$
+n'intervient nulle part dans cette mise à jour, uniquement dans le calcul de
+l'erreur pondérée (\texttt{err += w[i]}, puis \texttt{err /= wSum}) et de
+$\alpha_m$.
+\end{proof}
+
+\begin{note}[$Q_m$ pour l'apprentissage, $D_m$ pour l'évaluation]
+Le rééquilibrage 50/50 (tirer selon $Q_m$ plutôt que $D_m$) est un choix de
+conception délibéré : il évite qu'une classe majoritaire domine l'entraînement
+de la clause. Mais l'erreur pondérée
+$\mathrm{err}=\bigl(\sum_i w_i\mathbf 1[\text{faux}]\bigr)/\sum_i w_i$ et le
+coefficient $\alpha_m=\tfrac12\ln\frac{1-\mathrm{err}}{\mathrm{err}}$ sont eux
+calculés sous $D_m$, la vraie distribution AdaBoost non rééquilibrée. Le
+Théorème~\ref{thm:boosting} caractérise donc la clause $m$ elle-même sous
+$Q_m$ ; la qualité du weak learner (son erreur, son poids $\alpha_m$ dans le
+vote final) est mesurée sous $D_m$. Ce n'est pas une incohérence du code, mais
+une distinction nécessaire entre « ce qui entraîne la clause » et « ce qui
+évalue sa qualité » -- absente d'une version antérieure de ce document, qui
+remplaçait $P$ par $D_m$ partout, y compris pour caractériser l'entraînement
+lui-même.
+\end{note}
+
+\begin{note}[Ce que ce théorème ne prouve pas]
+Il caractérise chaque round \emph{isolément}, conditionnellement à $Q_m$ ---
+il ne prouve pas la convergence de l'ensemble $F_c(x)=\sum_m
+\alpha_{c,m}h_{c,m}(x)$ vers un classifieur de Bayes global, ce que
+l'AdaBoost classique établit sous des hypothèses différentes (voir Related
+Work). Nous ne revendiquons pas ce résultat plus fort.
+\end{note}
+
+\begin{note}[Weak learner abstentionniste]
+Le weak learner $h_m$ associé à la clause $m$ n'est pas un classifieur binaire
+standard : il s'abstient (vote nul) hors de $S_m$. En notation $\{-1,0,+1\}$,
+$h_m(x)=0$ pour $x\notin S_m$. L'erreur pondérée
+$\mathrm{err}_m=\bigl(\sum_{i\in S_m}w_i\mathbf1[h_m(x_i)\ne y_i]\bigr)/\sum_{i\in S_m}w_i$
+et $\alpha_m=\tfrac12\ln\frac{1-\mathrm{err}_m}{\mathrm{err}_m}$ sont donc les
+formules standard d'AdaBoost \emph{à classifieurs abstentionnistes}
+(restreintes à $S_m$), pas celles d'AdaBoost classique sur l'ensemble complet
+des exemples.
+\end{note}
+
+\begin{note}[Écart entre la structure caractérisée et le weak learner conservé]
+Les Théorèmes~\ref{thm:selection} et \ref{thm:multibit} caractérisent la
+structure $C^\star$ vers laquelle les automates de la clause $m$
+convergent -- y compris le régime « exclusion des deux littéraux » pour
+\emph{chacun} des $d-K$ littéraux libres, qui correspond à une clause
+\emph{structurellement vide} si tous les littéraux libres y tombent
+simultanément. Le code ne traite cependant pas une clause vide comme le
+prescrit la convention usuelle des Tsetlin Machines (sortie $1$ à
+l'entraînement, $0$ au test, cf.\ Granmo 2018, Eq.~6) : il la détecte après
+coup (\texttt{isEmpty()}) et l'écarte purement et simplement du vote final
+($\alpha_m=0$, clause ignorée). Les Théorèmes~\ref{thm:stationnaire}--\ref{thm:multibit}
+décrivent donc la structure vers laquelle \emph{chaque} clause converge, mais
+pas l'étape de sélection supplémentaire (garder/écarter) qui détermine
+l'ensemble effectif de weak learners utilisés par le classifieur final ; cette
+étape n'est pas couverte par les théorèmes ci-dessus et resterait à formaliser
+séparément (par exemple en conditionnant explicitement sur l'évènement
+« clause non vide »).
+\end{note}
+
+% ======================================================
+\section{Validation empirique --- déjà réalisée}\label{sec:validation}
+% ======================================================
+
+La courbe $N\mapsto\pi(\Inc)=\rho^N/(1+\rho^N)$ (Théorème~\ref{thm:stationnaire})
+et le seuil critique $\alpha^\star(S)$ issu du Théorème~\ref{thm:selection} ont
+été confrontés à des données réelles sur \textbf{quatre} datasets
+(\textit{Rôle de $S$ et $\alpha$ : théorie et validation} -- ce document utilise
+encore la notation $\alpha$ pour ce même paramètre, ici renommé $a$ pour éviter
+la collision avec $\alpha_m$) :
+\begin{itemize}
+  \item XOR : 42 configurations, accord exact sur la position du seuil (mur
+  d'effondrement prédit à $\alpha^\star(S)=0{,}519S$, confirmé configuration par
+  configuration) ;
+  \item Iris, Digits, MNIST : confirment que la sensibilité observée dépend du
+  ratio $M/(2^K\binom{n}{K})$ (nombre de clauses / nombre total de
+  conditions possibles -- le choix des $K$ features \emph{et} d'une valeur
+  binaire pour chacune, cf.\ \texttt{vals.push\_back(valDist(rng))} dans
+  \texttt{modele\_multiclasse.cpp} : le nombre de combinaisons de features
+  seul, $\binom{n}{K}$, sous-compte d'un facteur $2^K$), avec un test direct
+  ($M{=}500\to16\,000$ sur MNIST) confirmant que l'écart se réduit quand ce
+  ratio augmente.
+\end{itemize}
+Le classifieur multiclasses boosté (Théorème~\ref{thm:boosting}) a par ailleurs
+déjà été comparé à SVM, Régression Logistique, Random Forest et MLP sur Iris,
+Digits et MNIST, avec des résultats égalant ou dépassant ces baselines sur
+Iris et Digits (voir document de suivi des expériences).
+
+\end{document}

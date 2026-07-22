@@ -1,0 +1,1094 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[french]{babel}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[top=2.5cm,bottom=2.5cm,left=2.8cm,right=2.8cm]{geometry}
+\usepackage{parskip}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{tikz}
+
+\newtheorem{theorem}{Théorème}
+\newtheorem{lemma}[theorem]{Lemme}
+\newtheorem{corollary}[theorem]{Corollaire}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{remark}[theorem]{Remarque}
+\newtheorem{definition}[theorem]{Définition}
+\newtheorem{example}[theorem]{Exemple}
+
+\newcommand{\Inc}{\ensuremath{\mathrm{Inc}}}
+\newcommand{\Exc}{\ensuremath{\mathrm{Exc}}}
+\newcommand{\vbar}{\bar{v}}
+
+\begin{document}
+
+\begin{abstract}
+Les machines de Tsetlin constituent une alternative interprétable et
+efficace matériellement aux réseaux de neurones, mais leur analyse théorique
+reste difficile en raison des interactions entre automates au sein des
+clauses. Des approches récentes, telles que Probabilistic Concept Learning
+(PCL), découplent les automates et introduisent, pour chaque clause, un
+paramètre de transition $p_k\in(1/2,1)$ afin de rendre leur analyse
+théorique possible. Contrairement à PCL, qui conserve des mécanismes de
+mise à jour distincts pour les exemples positifs et négatifs, nous
+introduisons une règle locale unique à quatre cas. Chaque automate associé
+à un littéral est mis à jour uniquement à partir de la paire $(x_i,y)$,
+sans dépendre de la sortie de la clause ni du vote de l'ensemble. Cette
+structure permet de modéliser exactement chaque automate comme une chaîne
+de Markov naissance--mort à $2N$ états.
+
+Nous dérivons sa distribution stationnaire et caractérisons les régimes
+d'inclusion et d'exclusion des littéraux sous une loi jointe arbitraire
+$P(X,Y)$. Pour une clause comportant $n$ variables, dont $K$ sont fixées
+par une condition, nous montrons que
+\[
+\limsup_{t\to\infty}
+\mathbb{P}\!\left(C_t\neq C^\star\right)
+\leq
+2(n-K)\gamma_{\min}^{-N},
+\]
+où $C^\star$ désigne la configuration de littéraux stationnairement
+préférée par la dynamique et où $\gamma_{\min}>1$ mesure le plus faible
+biais d'inclusion ou d'exclusion parmi les automates. Nous intégrons ensuite
+cette règle dans un classifieur one-vs-rest composé de clauses soumises à
+des conditions aléatoires et agrégées par une pondération de type AdaBoost.
+Nous donnons également des conditions explicites d'identifiabilité de la
+conjonction génératrice sous dépendance et déséquilibre arbitraires des
+features, et montrons que cette conjonction reste récupérable sous un bruit
+de labels arbitraire de probabilité $\eta<\mu/(S+a)$. Sur le protocole de
+récupération de conjonction de PCL (cible aléatoire, table de vérité
+complète, sans bruit), notre règle récupère la cible exactement dans
+$100/100$ essais jusqu'à $n{=}12$ littéraux, contre une dégradation nette
+de PCL ($99\%$ à $n{=}4$, $37\%$ à $n{=}12$). Intégrée dans un classifieur
+one-vs-rest conditionné et boosté par AdaBoost, la règle atteint par
+ailleurs $100\%\pm0\%$ sur XOR bruité et des performances compétitives sur
+Iris, Digits et MNIST (détail des budgets de calcul en Section~6). Les
+garanties théoriques portent sur la règle locale sous une loi $P(X,Y)$
+fixe ; l'ensemble conditionné et boosté évalué expérimentalement entraîne
+chaque clause sous une distribution adaptative $Q_m$ qui change à chaque
+round de boosting. Nous montrons que ces mêmes garanties s'appliquent telles
+quelles à chaque round pris isolément (avec $P$ remplacée par $Q_m$), mais
+la convergence du vote pondéré final combinant tous les rounds reste
+ouverte.
+\end{abstract}
+
+\section{Introduction}
+
+Les machines de Tsetlin (TM) apprennent des clauses conjonctives de
+littéraux à l'aide d'un ensemble d'automates finis, un par littéral
+candidat, mis à jour par un mécanisme de feedback de Type~I / Type~II.
+Ce mécanisme couple les automates entre eux : la mise à jour de chaque
+automate dépend non seulement de l'exemple courant, mais aussi de la
+sortie de la clause tout entière et du vote global de l'ensemble. Ce
+couplage rend l'analyse théorique de la dynamique de convergence
+difficile : même pour une seule clause, les automates n'évoluent pas comme
+des chaînes de Markov indépendantes, et la littérature manque encore de
+garanties de convergence exactes sous une distribution de données
+arbitraire.
+
+Probabilistic Concept Learning (PCL) est l'approche la plus proche de la
+nôtre : elle découple les automates et associe à chaque clause un unique
+paramètre de transition $p_k\in(1/2,1)$, ce qui permet d'obtenir un résultat
+de convergence qualitatif. Cette simplification reste néanmoins partielle :
+PCL conserve des règles de mise à jour distinctes selon que l'exemple est
+positif ou négatif, et son analyse ne caractérise pas exactement la loi
+stationnaire de chaque automate sous une distribution de données
+arbitraire.
+
+Nous proposons une règle locale différente, à quatre cas, où la mise à
+jour d'un automate ne dépend que de la paire $(x_i,y)$ -- ni de la sortie
+de la clause, ni des autres automates, ni du vote de l'ensemble. Ce
+découplage total permet de modéliser exactement chaque automate comme une
+chaîne de Markov naissance--mort réfléchie à $2N$ états, et d'en dériver
+la loi stationnaire exacte sous une loi jointe $P(X,Y)$ arbitraire.
+
+\textbf{Contributions.} (1) Une règle de mise à jour locale à quatre cas,
+découplée de la sortie de la clause et du vote de l'ensemble. (2) La loi
+stationnaire exacte de chaque automate sous une loi $P(X,Y)$ arbitraire, et
+la caractérisation des trois régimes de sélection d'un littéral qui en
+découlent. (3) Une borne de concentration structurelle multi-features en
+$2(n-K)\gamma_{\min}^{-N}$ pour une clause entière. (4) Des conditions
+explicites d'identification de la conjonction génératrice sous dépendance
+et déséquilibre arbitraires des features, et sa récupération sous un bruit
+de labels arbitraire de probabilité $\eta<\mu/(S+a)$. (5) Un classifieur
+one-vs-rest pratique combinant cette règle, des conditions aléatoires et un
+poids de type AdaBoost, évalué sur XOR bruité, Iris, Digits et MNIST.
+
+\section{Contexte et travaux connexes}
+
+\subsection{Machines de Tsetlin}
+
+Une clause TM est une conjonction de littéraux $x_i$ ou $\neg x_i$,
+chacun gouverné par un automate à $2N$ états dont la moitié inférieure
+correspond à l'action Exclude et la moitié supérieure à l'action Include.
+Le feedback dépend du label $y$, de la sortie de la clause, et -- pour le
+Type~II en particulier -- du vote global de l'ensemble sur cet exemple :
+le Type~I renforce les littéraux cohérents avec un exemple positif que la
+clause reconnaît, le Type~II pénalise les littéraux inclus à tort sur un
+exemple négatif. Notre seul objectif ici est de préciser ce que notre règle
+retire à ce mécanisme : la dépendance à la sortie de la clause et au vote de
+l'ensemble.
+
+\subsection{Probabilistic Concept Learning}
+
+PCL découple les automates d'une même clause et leur associe, pour chacune,
+un paramètre de transition unique $p_k\in(1/2,1)$ : la mise à jour de
+chaque automate suit une marche aléatoire biaisée par $p_k$, avec des
+règles différentes selon que l'exemple observé est positif ($y=1$) ou
+négatif ($y=0$) (mécanisme vérifié directement dans le code officiel des
+auteurs, \texttt{dpcl-classifier/Main\_code\_AAAI25}). Sous cette hypothèse,
+PCL établit un résultat de convergence garantissant la récupération d'une
+conjonction cible.
+
+PCL conserve une structure de feedback héritée des machines de Tsetlin et
+fournit un résultat de convergence qualitatif sous des hypothèses
+spécifiques sur $p_k$. Nous cherchons ici une caractérisation exacte, à
+états finis, de la dynamique de chaque automate sous une distribution de
+données $P(X,Y)$ arbitraire -- sans restreindre a priori la forme de cette
+distribution.
+
+\begin{center}
+\begin{tabular}{lccc}
+\toprule
+Propriété & TM & PCL & Notre règle \\
+\midrule
+Dépend de la sortie de clause & Oui & Non & Non \\
+Dépend du vote global & Oui & Non & Non \\
+Paramètre par clause & $(s,T)$ & $p_k$ & $(S,a)$ \\
+Loi stationnaire finie explicite & Non & Non & Oui \\
+Loi $P(X,Y)$ arbitraire & Non démontré & Non & Oui \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\section{Règle d'apprentissage locale à quatre cas}
+
+\subsection{Cadre et notations}
+
+Soit $(X_t,Y_t)_{t\ge1}\overset{\mathrm{i.i.d.}}{\sim}P$ de loi jointe
+$P(X,Y)$ arbitraire, avec $X=(X_1,\ldots,X_n)\in\{0,1\}^n$ et $Y\in\{0,1\}$.
+Pour chaque variable $X_i$, deux automates à $2N$ états gouvernent le
+littéral $x_i$ et sa négation $\neg x_i$ : $v_i$ et $\vbar_i$, avec
+\[
+  \mathrm{Include}(s) = \mathbf 1[s>N], \qquad s\in\{1,\ldots,2N\}.
+\]
+La clause induite par ces automates est
+\[
+  C(x) = \bigwedge_{i:\,v_i>N} x_i \;\wedge\; \bigwedge_{i:\,\vbar_i>N} \neg x_i.
+\]
+Les mouvements élémentaires d'un automate sont
+\[
+  s \xrightarrow{\ \Inc\ } \min(s+1,2N), \qquad
+  s \xrightarrow{\ \Exc\ } \max(s-1,1)
+\]
+(bornes réfléchissantes : un automate déjà dans l'état $2N$ (resp.\ $1$) reste
+sur place s'il reçoit à nouveau l'ordre $\Inc$ (resp.\ $\Exc$) -- d'où la
+chaîne de Markov naissance--mort \emph{réfléchie} annoncée en Section~3.1).
+
+\subsection{Mise à jour à quatre cas}
+
+\begin{center}
+\begin{tabular}{cccc}
+\toprule
+$x_i$ & $y$ & Action sur $v_i$ & Action sur $\vbar_i$ \\
+\midrule
+0 & 0 & vers $\Inc$ avec proba.\ $S$ & vers $\Exc$ avec proba.\ $S$ \\
+0 & 1 & vers $\Exc$ avec proba.\ $a$ & pas de mise à jour \\
+1 & 0 & vers $\Exc$ avec proba.\ $S$ & vers $\Inc$ avec proba.\ $S$ \\
+1 & 1 & pas de mise à jour & vers $\Exc$ avec proba.\ $a$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+avec $S,a\in(0,1]$. Contrairement aux mécanismes de feedback des TM et de
+PCL, cette mise à jour ne dépend que de la paire locale $(x_i,y)$, et non
+de la sortie de la clause, du vote de l'ensemble, ou de l'état des autres
+automates.
+
+\subsection{Interprétation}
+
+Sur un exemple négatif ($y=0$), la règle pousse chaque littéral vers l'état
+qui le rend \emph{violé} par cet exemple (i.e.\ qui empêche la clause de
+répondre $1$ à tort) : $S$ contrôle la force de cet apprentissage. Sur un
+exemple positif ($y=1$), la règle exclut les littéraux \emph{incompatibles}
+avec cet exemple (ceux que l'exemple positif viole) : $a$ contrôle la force
+de cette exclusion. À ce stade, rien ne garantit encore que la structure
+ainsi sélectionnée coïncide avec une éventuelle conjonction génératrice
+sous-jacente -- ce point est traité séparément en Section~4.
+
+\subsection{Représentation graphique}
+
+La Table~1 (Section~3.2) reste la représentation formelle de référence. La
+Figure~\ref{fig:automate} n'en donne qu'une lecture graphique : la chaîne
+d'états d'un automate, avec la frontière Exclude/Include entre $N$ et $N{+}1$.
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[>=stealth, every node/.style={font=\small}]
+  \node[draw, circle, minimum size=7mm] (s1)  at (0,0)   {$1$};
+  \node[draw, circle, minimum size=7mm] (s2)  at (1.6,0) {$2$};
+  \node[draw, circle, minimum size=7mm] (sN)  at (4.4,0) {$N$};
+  \node[draw, circle, minimum size=7mm] (sN1) at (6.4,0) {$N{+}1$};
+  \node[draw, circle, minimum size=7mm] (s2N) at (9.2,0) {$2N$};
+  \node at (3.0,0) {$\cdots$};
+  \node at (7.8,0) {$\cdots$};
+  \draw[->] (s1) -- (s2);
+  \draw[->] (s2) -- (3.4,0);
+  \draw[->] (3.6,0) -- (sN);
+  \draw[->] (sN) -- (sN1);
+  \draw[->] (sN1) -- (7.2,0);
+  \draw[->] (7.4,0) -- (s2N);
+  \draw[dashed] (5.4,0.9) -- (5.4,-0.9);
+  \node at (2.2,-1.1) {\footnotesize Exclude};
+  \node at (7.8,-1.1) {\footnotesize Include};
+\end{tikzpicture}
+\caption{Chaîne d'états d'un automate à $2N$ états. Les flèches représentent
+les mouvements $\Inc$ et $\Exc$ (Section~3.1) ; la frontière (pointillés)
+sépare Exclude ($1,\ldots,N$) et Include ($N{+}1,\ldots,2N$).}
+\label{fig:automate}
+\end{figure}
+
+\subsection{Algorithme d'apprentissage local}
+
+\begin{quote}\ttfamily\small
+\textbf{Entrée} : échantillons $(x_t,y_t)$, $2N$ états, paramètres $S,a$.\\[4pt]
+initialiser $(v_i,\vbar_i)$ pour chaque feature $i$\\
+\textbf{pour} $t = 1$ à $T$ :\\
+\hspace*{1.5em}\textbf{pour} $i = 1$ à $n$ :\\
+\hspace*{3em}mettre à jour $(v_i,\vbar_i)$ selon la Table~1, à partir de $(x_{t,i},y_t)$\\
+\textbf{retourner} la clause induite par les littéraux inclus
+\end{quote}
+
+À ce stade, ni le boosting AdaBoost, ni les conditions aléatoires, ni le
+classifieur multiclasse ne sont encore introduits : ils font l'objet de la
+Section~5.
+
+\section{Analyse théorique}
+
+Cette section prouve la convergence de la règle locale à 4 cas elle-même,
+et non celle du classifieur complet ; son intégration dans un ensemble
+conditionné et boosté est traitée séparément en Section~5, comme une
+application dont l'analyse de convergence complète reste un travail futur.
+
+\subsection{Dynamique d'un automate isolé}
+
+Pour $v_i$, les probabilités de transition intérieures s'écrivent, pour
+toute loi $P$ :
+\begin{align}
+  p_i^+ &= S\,P(X_i{=}0,Y{=}0), & p_i^- &= S\,P(X_i{=}1,Y{=}0) + a\,P(X_i{=}0,Y{=}1); \label{eq:pv}\\
+  \bar p_i^+ &= S\,P(X_i{=}1,Y{=}0), & \bar p_i^- &= S\,P(X_i{=}0,Y{=}0) + a\,P(X_i{=}1,Y{=}1). \label{eq:pvbar}
+\end{align}
+On note $\rho_i=p_i^+/p_i^-$, $\bar\rho_i=\bar p_i^+/\bar p_i^-$. Pour
+$p_i^+,p_i^->0$, chaque marginal $(v_{i,t})_t$ est une chaîne de Markov
+naissance--mort réfléchie sur $\{1,\ldots,2N\}$.
+
+\subsection{Loi stationnaire exacte}
+
+\begin{theorem}\label{thm:stat}
+Soit $\rho=p^+/p^-$, avec $p^+,p^->0$ (indices $i$ omis). La chaîne $(v_t)$
+est irréductible et apériodique sur $\{1,\ldots,2N\}$, donc
+$\mathcal L(v_t)\xrightarrow[t\to\infty]{}\pi$ (convergence en loi vers
+l'unique loi stationnaire, théorème ergodique standard pour les chaînes de
+Markov finies irréductibles apériodiques), de loi stationnaire
+\[
+  \pi(k) = \frac{(1-\rho)\rho^{k-1}}{1-\rho^{2N}}\ (\rho\ne1), \qquad
+  \pi(k) = \frac1{2N}\ (\rho=1), \qquad
+  \pi(\Inc) = \frac{\rho^N}{1+\rho^N}.
+\]
+Si $\rho>1$ : $\pi(\Inc)\to1$ et $1-\pi(\Inc)\le\rho^{-N}$. Si $\rho<1$ :
+$\pi(\Exc)\to1$ symétriquement. De plus $\frac1T\sum_{t\le T}\mathbf1[v_t>N]\to\pi(\Inc)$ p.s.
+\emph{Attention} : ceci est une convergence en loi (stationnaire) et une
+convergence p.s.\ de la \emph{fréquence temporelle} -- pas une convergence
+p.s.\ de $v_t$ vers un état fixe. Dans le cas ergodique ($p^+,p^->0$),
+l'automate continue de se déplacer indéfiniment ; il n'y a stabilisation
+permanente que dans le cas absorbant (Corollaire~\ref{cor:absorb}).
+\end{theorem}
+
+\begin{proof}
+\emph{Irréductibilité.} Chaîne de naissance-mort à transitions intérieures
+strictement positives.
+
+\emph{Noyau explicite.} Pour $2\le k\le 2N-1$ : $P(k,k{+}1)=p^+$,
+$P(k,k{-}1)=p^-$, $P(k,k)=1-p^+-p^-$. Aux bornes réfléchissantes :
+$P(1,1)=1-p^+$, $P(1,2)=p^+$, $P(2N,2N)=1-p^-$, $P(2N,2N{-}1)=p^-$.
+
+\emph{Apériodicité.} $P(1,1)=1-p^+\ge p^->0$ : l'état $1$ a un cycle de
+longueur $1$, donc une période $d(1)=1$. Par irréductibilité, la période est
+une propriété de classe : toute la chaîne est apériodique.
+
+\emph{Forme géométrique.} Bilan détaillé $\pi(k)p^+=\pi(k{+}1)p^-$ donne
+$\pi(k{+}1)/\pi(k)=\rho$ constant, soit $\pi(k)=\pi(1)\rho^{k-1}$ ;
+normalisation $\sum_{k=1}^{2N}\pi(k)=1=\pi(1)\sum_{k=0}^{2N-1}\rho^k$ donne
+$\pi(1)=(1-\rho)/(1-\rho^{2N})$ (série géométrique finie), d'où les formules
+annoncées. $\pi(\Inc)=\sum_{k=N+1}^{2N}\pi(k)=\pi(1)\rho^N\sum_{k=0}^{N-1}\rho^k
+=\pi(1)\rho^N(1-\rho^N)/(1-\rho)=\rho^N(1-\rho^N)/(1-\rho^{2N})=\rho^N/(1+\rho^N)$.
+La convergence p.s.\ de la moyenne temporelle est le théorème ergodique
+standard.
+\end{proof}
+
+\begin{corollary}[Cas absorbant]\label{cor:absorb}
+Si $p^-=0,p^+>0$ : absorption p.s.\ en $2N$ en temps fini,
+$\mathbb E[T_{2N}]=(2N-s_0)/p^+$ ; première entrée dans $\Inc$ (franchissement
+de $N$), généralement plus rapide, $\mathbb E[T_{\Inc}]=(N+1-s_0)_+/p^+$. Si
+$p^+=0,p^->0$ : symétrique en $1$/$\Exc$. Si $p^+=p^-=0$ : aucune transition
+ne se produit jamais (chaque état trivialement absorbant), l'automate reste
+figé à $s_0$.
+\end{corollary}
+
+\subsection{Régimes de sélection des littéraux}
+
+\begin{lemma}\label{lem:excl}
+Soit $\Delta=p^+-p^-$, $\bar\Delta=\bar p^+-\bar p^-$. Pour toute loi $P(X,Y)$ :
+\[
+  \Delta+\bar\Delta = -a\,P(Y{=}1) \le 0.
+\]
+Si $P(Y{=}1)>0$, l'inégalité est \emph{stricte} : $\Delta+\bar\Delta<0$, donc
+$\Delta=\bar\Delta=0$ simultanément est impossible. Si $P(Y{=}1)=0$ (cas
+dégénéré), $\Delta+\bar\Delta=0$ exactement.
+\end{lemma}
+
+\begin{proof}
+De \eqref{eq:pv}--\eqref{eq:pvbar} : $\Delta = S\,P(0,0)-S\,P(1,0)-a\,P(0,1)$,
+$\bar\Delta = S\,P(1,0)-S\,P(0,0)-a\,P(1,1)$. La somme élimine les termes en
+$S$ : $\Delta+\bar\Delta=-a[P(0,1)+P(1,1)]=-a\,P(Y{=}1)\le0$, avec égalité
+ssi $P(Y{=}1)=0$ (puisque $a>0$).
+\end{proof}
+
+\begin{corollary}\label{cor:asym}
+Si $\Delta>0$ alors $\bar\Delta=-a\,P(Y{=}1)-\Delta<0$ strictement.
+\end{corollary}
+
+\begin{remark}
+Le lemme exclut $\Delta>0$ et $\bar\Delta>0$ simultanément ; il n'exclut pas
+$\Delta<0$ et $\bar\Delta<0$ simultanément (double exclusion, régime neutre).
+Pour $N$ fini et $\rho\ne1$, l'état instantané peut néanmoins se trouver du
+mauvais côté avec probabilité $\le\rho^{-N}\to0$.
+\end{remark}
+
+\begin{theorem}\label{thm:sel}
+Supposons $\Delta\ne0$ et $\bar\Delta\ne0$. Notons $\gamma=\max(\rho,1/\rho)>1$,
+$\bar\gamma=\max(\bar\rho,1/\bar\rho)>1$ (probabilité du mauvais côté toujours
+$\le\gamma^{-N}$, resp.\ $\bar\gamma^{-N}$, quel que soit le signe de
+$\Delta,\bar\Delta$). Alors exactement un des trois régimes suivants a lieu :
+\begin{itemize}
+  \item $\Delta>0$ (donc $\bar\Delta<0$) $\iff S\,P(0,0)>S\,P(1,0)+a\,P(0,1)$ :
+  \[
+    \lim_{N\to\infty}\;\limsup_{t\to\infty}\;\mathbb P\bigl((v_t,\vbar_t)\ne(\Inc,\Exc)\bigr) = 0.
+  \]
+  \item $\bar\Delta>0$ (donc $\Delta<0$) $\iff S\,P(1,0)>S\,P(0,0)+a\,P(1,1)$ :
+  \[
+    \lim_{N\to\infty}\;\limsup_{t\to\infty}\;\mathbb P\bigl((v_t,\vbar_t)\ne(\Exc,\Inc)\bigr) = 0.
+  \]
+  \item $\Delta<0$ et $\bar\Delta<0$ :
+  \[
+    \lim_{N\to\infty}\;\limsup_{t\to\infty}\;\mathbb P\bigl((v_t,\vbar_t)\ne(\Exc,\Exc)\bigr) = 0.
+  \]
+\end{itemize}
+\end{theorem}
+
+\begin{proof}
+Les équivalences découlent de \eqref{eq:pv}--\eqref{eq:pvbar}. L'exclusion
+mutuelle des trois régimes découle du Corollaire~\ref{cor:asym}. Passage du
+marginal au joint (cas $\Delta>0$ : $\rho>1$ donc $\gamma=\rho$, $\bar\rho<1$
+donc $\bar\gamma=1/\bar\rho$ ; similaire ailleurs), \emph{sans} invoquer de loi
+stationnaire jointe (la chaîne $(v_t,\vbar_t)$ n'est pas nécessairement
+irréductible -- ex.\ $S{=}1$, $P(Y{=}1){=}0$ conserve $v_t+\vbar_t$). En
+prenant d'abord $\limsup_{t\to\infty}$ (la borne du Théorème~\ref{thm:stat}
+porte sur la loi \emph{stationnaire}, atteinte seulement asymptotiquement en
+$t$ -- fausse pour un $t$ petit et une initialisation arbitraire), puis par
+union bound,
+\[
+  \limsup_{t\to\infty}\mathbb P\bigl((v_t,\vbar_t)\ne(\Inc,\Exc)\bigr)
+  \le \limsup_{t\to\infty}\mathbb P(v_t\ne\Inc)+\limsup_{t\to\infty}\mathbb P(\vbar_t\ne\Exc)
+  \le \gamma^{-N}+\bar\gamma^{-N},
+\]
+sans hypothèse d'indépendance entre $v_t$ et $\vbar_t$. Puis
+$\gamma^{-N}+\bar\gamma^{-N}\xrightarrow[N\to\infty]{}0$ donne la double
+limite annoncée. Noter $\bar\gamma^{-N}=\bar\rho^N$ ici (pas $\bar\rho^{-N}$,
+puisque $\bar\rho<1$) : c'est pour éviter cette confusion de signe que
+$\gamma=\max(\rho,1/\rho)$ est défini une fois pour toutes.
+\end{proof}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.7\textwidth]{figures/graphe_N_thm6.png}
+\caption{Validation empirique du Théorème~\ref{thm:sel} : pour une paire
+$(v,\bar v)$ sous une loi $P(X,Y)$ fixée ($\Delta>0$), probabilité
+$P((v_t,\bar v_t)\ne(\Inc,\Exc))$ en fonction de $N$, comparée à la borne
+exacte $\gamma^{-N}+\bar\gamma^{-N}$. Simulation fidèle à la règle réelle :
+un seul exemple $(x,y)$ tiré par pas de temps (partagé par $v$ et $\bar v$,
+comme dans le code), chaque automate concerné appliquant ensuite son propre
+tirage indépendant -- $v$ et $\bar v$ ne sont donc pas simulés comme des
+marches indépendantes. Nombre de répétitions adapté à chaque $N$ pour
+garder au moins $\sim\!20$ évènements « mauvais régime » observés ; la
+courbe empirique reste sous la borne sur toute la plage $N{=}2$ à $20$
+(à $N{=}24$, $0$ évènement observé sur $25\,000$ répétitions, cohérent avec
+une borne de l'ordre de $8\times10^{-9}$).}
+\label{fig:thm6}
+\end{figure}
+
+\subsection{Concentration structurelle multi-features}
+
+\begin{theorem}\label{thm:multi}
+Clause à $n$ features, $K$ fixées par la condition, $d=n-K$ libres gouvernées par
+$2d$ automates. Pour chaque automate $j$ (préférence stationnaire non
+dégénérée), $r_j=p_j^+/p_j^-$, $\gamma_j=\max(r_j,1/r_j)>1$,
+$\gamma_{\min}=\min_j\gamma_j$. Alors, sans hypothèse d'indépendance,
+l'erreur de \emph{récupération structurelle} vérifie :
+\[
+  \limsup_{t\to\infty}\mathbb P(C_t\ne C^\star) \le \sum_{j=1}^{2d}\frac1{1+\gamma_j^N}
+  \le 2(n-K)\,\gamma_{\min}^{-N} \xrightarrow[N\to\infty]{} 0.
+\]
+\end{theorem}
+
+\begin{proof}
+Soit $A_j$ l'évènement « l'automate $j$ est du mauvais côté ». Si tous les
+$A_j$ sont faux, chaque automate est dans son état préféré, donc $C_t=C^\star$ ;
+par contraposée, $\{C_t\ne C^\star\}\subseteq A_1\cup\cdots\cup A_{2d}$, d'où
+par l'union bound (Boole) :
+\[
+  \mathbb P(C_t\ne C^\star)\le\sum_{j=1}^{2d}\mathbb P(A_j).
+\]
+Par le Théorème~\ref{thm:stat}, $\mathbb P(A_j)=\pi(\Exc)=1/(1+r_j^N)$ si
+$r_j>1$, ou $\pi(\Inc)=r_j^N/(1+r_j^N)$ si $r_j<1$ -- dans les deux cas
+exactement $1/(1+\gamma_j^N)$, d'où la première inégalité. Ensuite,
+$1/(1+\gamma_j^N)<\gamma_j^{-N}$ (dénominateur plus grand), et
+$\gamma_j\ge\gamma_{\min}$ donne $\gamma_j^{-N}\le\gamma_{\min}^{-N}$ ; en
+remplaçant chacun des $2d$ termes par cette même borne on obtient
+$2(n-K)\,\gamma_{\min}^{-N}$.
+\end{proof}
+
+\begin{remark}
+Cas $r_j=1$ et $p_j^+=p_j^-=0$ exclus (non-dégénérescence) ; automate
+absorbant (Corollaire~\ref{cor:absorb}) couvert par $\gamma_j=\infty$. La
+borne utilise le pire automate, pas le meilleur. $C_t\ne C^\star$ est un
+\emph{mismatch structurel} (deux structures différentes peuvent calculer la
+même fonction logique par coïncidence), pas nécessairement une erreur de
+classification.
+\end{remark}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.7\textwidth]{figures/graphe_N_thm7.png}
+\caption{Validation empirique du Théorème~\ref{thm:multi} : erreur de
+récupération structurelle $P(C_t\ne C^\star)$ en fonction de $N$, pour une
+clause à 3 features de difficultés différentes ($\gamma_{\min}\approx1.17$).
+Simulation fidèle à la règle réelle : un seul exemple $(x_1,x_2,x_3,y)$
+tiré par pas de temps (loi jointe à indépendance conditionnelle en $Y$),
+chacun des $6$ automates étant mis à jour à partir de ce même tirage
+partagé -- pas $2d$ marches indépendantes. L'empirique reste toujours sous
+la borne théorique sur toute la plage $N{=}2$ à $40$.}
+\label{fig:thm7}
+\end{figure}
+
+\subsection{Récupération d'une conjonction cible}
+
+Le Théorème~\ref{thm:sel} caractérise la structure préférée sous une loi $P$
+arbitraire, mais ne dit pas si cette structure est la véritable cible. On le
+montre ici pour une famille explicite de concepts : une conjonction cible,
+sous une loi jointe $(X_1,\ldots,X_n,Y)$ \emph{quelconque} (features
+corrélées, déséquilibrées, dépendantes) telle que $Y=Y^\star$.
+
+\begin{definition}\label{def:ctrue}
+Soit $C_{\mathrm{true}}(x)=\bigwedge_{j\in J_+}x_j\wedge\bigwedge_{j\in J_-}(1-x_j)$
+une conjonction de $m=|J_+|+|J_-|\ge1$ littéraux, $J_+\cap J_-=\varnothing$
+-- une fonction booléenne fixe, déterministe. On pose $Y^\star=C_{\mathrm{true}}(X)$,
+la variable aléatoire obtenue en évaluant cette fonction sur $X$.
+\end{definition}
+
+\begin{theorem}[Identification sous dépendance de features arbitraire]\label{thm:identif}
+Avec $C_{\mathrm{true}},Y^\star$ comme dans la Définition~\ref{def:ctrue},
+supposons seulement $Y=Y^\star$ (p.s.) -- la loi jointe de
+$(X_1,\ldots,X_n)$ est quelconque (dépendante, déséquilibrée). Pour chaque
+variable $j$, notons
+\[
+  A_j=P(X_j{=}0,Y{=}0),\quad B_j=P(X_j{=}1,Y{=}0),\quad
+  C_j=P(X_j{=}0,Y{=}1),\quad D_j=P(X_j{=}1,Y{=}1).
+\]
+Alors :
+\begin{itemize}
+  \item pour $j\in J_+$ : si $A_j>B_j$, alors $\Delta_j>0$ et $\bar\Delta_j<0$ ;
+  \item pour $j\in J_-$ : si $B_j>A_j$, alors $\bar\Delta_j>0$ et $\Delta_j<0$ ;
+  \item pour $k\notin J_+\cup J_-$ : si $-\tfrac aS D_k < A_k-B_k < \tfrac aS C_k$,
+  alors $\Delta_k<0$ et $\bar\Delta_k<0$.
+\end{itemize}
+Si ces conditions sont vérifiées pour tous les littéraux concernés, alors
+$C^\star=C_{\mathrm{true}}$ (égalité structurelle : $C^\star$ et
+$C_{\mathrm{true}}$ désignent la même fonction booléenne, encodée par le
+même ensemble de littéraux).
+\end{theorem}
+
+\begin{proof}
+Pour $j\in J_+$ : $Y{=}1\Rightarrow X_j{=}1$, donc $C_j=P(X_j{=}0,Y{=}1)=0$,
+et par \eqref{eq:pv} : $\Delta_j=S\,A_j-S\,B_j-a\cdot0=S(A_j-B_j)$, positif
+ssi $A_j>B_j$. Par le Lemme~\ref{lem:excl}, $\bar\Delta_j=-a\,P(Y{=}1)-\Delta_j$ ;
+comme $a\ge0$ et $P(Y{=}1)\ge0$, $\Delta_j>0\Rightarrow\bar\Delta_j\le-\Delta_j<0$.
+Symétriquement pour $j\in J_-$ : $Y{=}1\Rightarrow X_j{=}0$ donne
+$D_j=P(X_j{=}1,Y{=}1)=0$, d'où par \eqref{eq:pvbar} :
+$\bar\Delta_j=S\,B_j-S\,A_j-a\cdot0=S(B_j-A_j)$, positif ssi $B_j>A_j$, et
+alors $\Delta_j=-a\,P(Y{=}1)-\bar\Delta_j<0$.
+
+Pour $k$ non pertinent, \eqref{eq:pv}--\eqref{eq:pvbar} donnent
+$\Delta_k=S(A_k-B_k)-a\,C_k$ et $\bar\Delta_k=S(B_k-A_k)-a\,D_k$ (sans
+simplification possible ici, $C_k,D_k$ quelconques). $\Delta_k<0\iff
+A_k-B_k<\tfrac aS C_k$ ; $\bar\Delta_k<0\iff A_k-B_k>-\tfrac aS D_k$. Les deux
+réunies donnent l'encadrement annoncé.
+\end{proof}
+
+\begin{remark}
+Le Théorème~\ref{thm:identif} ne suppose ni indépendance ni équilibre des
+features : $A_j,B_j,C_j,D_j$ sont des probabilités jointes quelconques et les
+conditions ($A_j>B_j$, etc.) portent sur n'importe quelle loi jointe, pas sur
+un modèle génératif particulier.
+\end{remark}
+
+\begin{theorem}[Robustesse à un bruit de label dépendant de la distribution]\label{thm:identif-bruit}
+Reprenons les notations et hypothèses du Théorème~\ref{thm:identif}, et
+notons $\Delta_j^\star,\bar\Delta_j^\star,\Delta_k^\star,\bar\Delta_k^\star$
+les dérives calculées avec le label sans bruit $Y^\star$. Définissons
+\[
+  \mu = \min\Bigl(
+    \{\Delta_j^\star : j\in J_+\} \cup \{-\bar\Delta_j^\star : j\in J_+\} \cup
+    \{-\Delta_j^\star : j\in J_-\} \cup \{\bar\Delta_j^\star : j\in J_-\} \cup{}
+  \]
+  \[
+    \{-\Delta_k^\star : k\notin J_+\cup J_-\} \cup \{-\bar\Delta_k^\star : k\notin J_+\cup J_-\}
+  \Bigr),
+\]
+c'est-à-dire le plus petit des membres de gauche de toutes les inégalités
+strictes exigées par le Théorème~\ref{thm:identif} (une quantité par
+littéral et par signe requis) ; supposons $\mu>0$, i.e.\ ces inégalités
+sont toutes satisfaites sans bruit. Soit maintenant $Y$ un label tel que
+$\eta:=P(Y\ne Y^\star)>0$, \emph{sans aucune autre hypothèse} sur la loi du
+bruit $Y\ne Y^\star$ (ni symétrie, ni indépendance vis-à-vis de $X$). Si
+\[
+  \boxed{\eta < \frac{\mu}{S+a},}
+\]
+alors toutes les inégalités du Théorème~\ref{thm:identif} restent
+satisfaites (avec $Y$ à la place de $Y^\star$) et $C^\star=C_{\mathrm{true}}$.
+Combiné au Théorème~\ref{thm:multi}, ceci donne directement
+$\lim_{N\to\infty}\limsup_{t\to\infty}\mathbb P(C_t\not\equiv C_{\mathrm{true}})=0$ :
+la règle récupère, avec probabilité tendant vers $1$, la conjonction
+génératrice exacte -- pas seulement une structure définie implicitement par
+$P$ -- tant que le bruit reste sous ce seuil.
+\end{theorem}
+
+\begin{proof}
+\textbf{Étape 1 : chaque dérive est une espérance.}
+Par \eqref{eq:pv}, $\Delta_j = S\,P(X_j{=}0,Y{=}0) - S\,P(X_j{=}1,Y{=}0) -
+a\,P(X_j{=}0,Y{=}1)$. Ceci s'écrit $\Delta_j=\mathbb E[c(X_j,Y)]$ où
+$c:\{0,1\}^2\to\mathbb R$ est définie par $c(0,0)=S$, $c(1,0)=-S$,
+$c(0,1)=-a$, $c(1,1)=0$. De même, par \eqref{eq:pvbar},
+$\bar\Delta_j=\mathbb E[\bar c(X_j,Y)]$ avec $\bar c(1,0)=S$,
+$\bar c(0,0)=-S$, $\bar c(1,1)=-a$, $\bar c(0,1)=0$ (les rôles de $Y{=}0$ et
+$Y{=}1$ sont échangés par rapport à $c$). Notons $\Delta_j^\star=\mathbb
+E[c(X_j,Y^\star)]$ la même quantité calculée avec $Y^\star$ au lieu de $Y$.
+
+\textbf{Étape 2 : un couplage naturel.}
+Puisque $X$ suit la même loi dans les deux cas (seul le label diffère),
+couplons $Y$ et $Y^\star$ sur le même espace de probabilité que $X$, de
+sorte que $\{Y\ne Y^\star\}$ soit exactement l'événement de bruit, de
+probabilité $\eta$. Un tel couplage existe toujours (c'est la définition
+même de « $Y$ est un label bruité de $Y^\star$ avec taux $\eta$ »). Alors
+\[
+  \Delta_j - \Delta_j^\star = \mathbb E\bigl[c(X_j,Y) - c(X_j,Y^\star)\bigr]
+  = \mathbb E\Bigl[\bigl(c(X_j,Y)-c(X_j,Y^\star)\bigr)\mathbf 1[Y\ne Y^\star]\Bigr],
+\]
+la dernière égalité car le terme entre crochets est nul dès que $Y=Y^\star$.
+
+\textbf{Étape 3 : borne ponctuelle du saut de $c$, à $X_j$ fixé.}
+Sur l'événement $Y\ne Y^\star$, les deux valeurs $Y,Y^\star$ sont
+distinctes dans $\{0,1\}$, donc $\{Y,Y^\star\}=\{0,1\}$ dans un ordre ou
+l'autre. Fixons la valeur de $X_j$ :
+\begin{itemize}
+  \item si $X_j=0$ : les deux valeurs possibles de $c(0,\cdot)$ sont
+  $c(0,0)=S$ et $c(0,1)=-a$, donc $|c(0,Y)-c(0,Y^\star)|=|S-(-a)|=S+a$ ;
+  \item si $X_j=1$ : les deux valeurs possibles sont $c(1,0)=-S$ et
+  $c(1,1)=0$, donc $|c(1,Y)-c(1,Y^\star)|=|{-S}-0|=S$.
+\end{itemize}
+Dans les deux cas, $|c(X_j,Y)-c(X_j,Y^\star)|\le S+a$ (le maximum, $S+a$,
+est atteint en $X_j=0$ ; puisque $a>0$, il domine $S$). Cette borne est
+\emph{ponctuelle} : elle vaut pour toute réalisation de $X_j$, pas
+seulement en moyenne.
+
+\textbf{Étape 4 : passage à l'espérance.}
+En combinant les étapes 2 et 3,
+\[
+  |\Delta_j-\Delta_j^\star| \le \mathbb E\Bigl[\bigl|c(X_j,Y)-c(X_j,Y^\star)\bigr|\,\mathbf 1[Y\ne Y^\star]\Bigr]
+  \le (S+a)\,\mathbb E\bigl[\mathbf 1[Y\ne Y^\star]\bigr] = (S+a)\,\eta.
+\]
+Le même raisonnement appliqué à $\bar c$ (saut $S+a$ atteint en $X_j=1$
+cette fois, par symétrie des rôles de $0,1$ sur $Y$) donne
+$|\bar\Delta_j-\bar\Delta_j^\star|\le(S+a)\eta$. Le même argument, avec
+exactement les mêmes fonctions $c,\bar c$, s'applique aux variables non
+pertinentes $k$ et donne $|\Delta_k-\Delta_k^\star|\le(S+a)\eta$,
+$|\bar\Delta_k-\bar\Delta_k^\star|\le(S+a)\eta$.
+
+\textbf{Étape 5 : préservation des signes.}
+Soit $\eta<\mu/(S+a)$, i.e.\ $(S+a)\eta<\mu$. Prenons par exemple
+$j\in J_+$ : par définition de $\mu$, $\Delta_j^\star\ge\mu$. Par l'étape 4,
+$\Delta_j\ge\Delta_j^\star-(S+a)\eta\ge\mu-(S+a)\eta>0$ puisque
+$(S+a)\eta<\mu$. De même $-\bar\Delta_j^\star\ge\mu$ donne
+$\bar\Delta_j\le\bar\Delta_j^\star+(S+a)\eta\le-\mu+(S+a)\eta<0$. Le même
+calcul, terme à terme, s'applique à $j\in J_-$ et aux $k$ non pertinents.
+Donc toutes les inégalités strictes du Théorème~\ref{thm:identif} restent
+vraies avec $Y$ à la place de $Y^\star$, ce qui conclut.
+\end{proof}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.7\textwidth]{figures/graphe_eta_thm11.png}
+\caption{Validation empirique du Théorème~\ref{thm:identif-bruit} : taux de
+récupération exacte de $C_{\mathrm{true}}$ ($n{=}6$, $m{=}3$, $S{=}1$,
+$a{=}0.3$) en fonction du bruit de label $\eta$, sur $200$ répétitions par
+point. La transition empirique se produit nettement autour du seuil exact
+$\eta^\star{=}2S/(4S+a\cdot2^m){=}0.3125$, calculé directement pour ce cas
+i.i.d.\ Bernoulli(1/2) -- la borne générale du Théorème~\ref{thm:identif-bruit},
+$\mu/(S{+}a)\approx0.014$, est confirmée très conservatrice pour ce cas
+particulier.}
+\label{fig:thm11}
+\end{figure}
+
+\section{Ensemble conditionné et boosté}
+
+On intègre la règle à 4 cas dans un ensemble conditionné (conditions
+aléatoires) et boosté (AdaBoost) pour illustrer son utilité pratique en
+classification. \textbf{L'analyse de convergence complète de cet ensemble --
+couverture des conditions sous la distribution adaptative $Q_m$, et
+convergence du vote pondéré final -- n'est pas prouvée ici et reste un
+travail futur.} Les résultats de cette section (couverture, boosting)
+caractérisent des propriétés partielles utiles mais ne ferment pas cette
+boucle.
+
+\subsection{Conditions aléatoires}
+
+Pour chaque clause $m$, on tire une condition $F_m\subseteq\{1,\ldots,n\}$,
+$|F_m|=K$, et une configuration $z_m\in\{0,1\}^K$, uniformément
+indépendamment. La clause n'est active que sur les exemples qui satisfont
+sa condition :
+\[
+  g_m(x) = \mathbf 1[x_{F_m}=z_m].
+\]
+Les variables de $F_m$ sont retirées de l'apprentissage local : leurs deux
+automates ($v_i$ et $\vbar_i$ pour $i\in F_m$) sont fixés dans l'état
+Exclude et ne sont plus mis à jour -- la condition $x_{F_m}=z_m$ elle-même
+n'est pas encodée par des littéraux inclus dans la clause, mais imposée
+séparément par le mécanisme d'activation $g_m$. Seules les $n-K$ variables
+restantes sont gouvernées par $2(n-K)$ automates entraînables par la règle
+à quatre cas.
+
+\subsection{Entraînement de la clause}
+
+Pour chaque clause $m$ : (1) on sélectionne le sous-ensemble $S_m$ des
+exemples d'entraînement satisfaisant $g_m$ ; (2) on équilibre le tirage
+50/50 entre les deux classes lorsque les deux sont présentes dans $S_m$ ;
+(3) au sein de chaque classe, le tirage est proportionnel aux poids AdaBoost
+courants $w_i$ ; (4) chaque exemple ainsi tiré met à jour les $n-K$
+automates libres par la règle à quatre cas.
+
+\subsection{Agrégation pondérée}
+
+Pour un classifieur binaire :
+\[
+  f(x) = \sum_{m=1}^{M} \alpha_m\, g_m(x)\,\bigl(2\,C_m(x)-1\bigr), \qquad
+  \hat y = \mathbf 1[f(x)>0],
+\]
+avec
+\[
+  \alpha_m = \frac12\ln\frac{1-\mathrm{err}_m}{\mathrm{err}_m}.
+\]
+Chaque weak learner $h_m(x)=g_m(x)(2C_m(x)-1)\in\{-1,0,1\}$ s'abstient
+(valeur $0$) lorsque sa condition n'est pas satisfaite par $x$ : il s'agit
+donc d'un \emph{AdaBoost avec abstention}, où $\alpha_m$ et la mise à jour
+des poids ne portent que sur la masse active $S_m$, et non d'AdaBoost
+standard appliqué tel quel à un classifieur binaire toujours actif.
+
+\subsection{Caractérisation par round de boosting}\label{sec:round-boosting}
+
+Les Théorèmes~\ref{thm:stat}, \ref{thm:sel}, \ref{thm:multi},
+\ref{thm:identif}, \ref{thm:identif-bruit} portent sur une clause unique
+sous une loi $P(X,Y)$ \emph{fixe}. Le classifieur de la Section~5 entraîne
+chaque clause $m$ sous une distribution adaptative $Q_m$ qui change à
+chaque round de boosting -- ce résultat précise exactement ce qui, dans
+cet écart, est couvert et ce qui ne l'est pas.
+
+\begin{theorem}[Distribution d'entraînement effective d'un round]\label{thm:boosting}
+Soit $S_m$ le sous-ensemble applicable de la clause $m$ (exemples
+satisfaisant $g_m$) et $w_i$ les poids AdaBoost courants sur $S_m$.
+Notons $W_m^+=\sum_{i\in S_m:y_i=1}w_i$, $W_m^-=\sum_{i\in S_m:y_i=0}w_i$.
+L'Algorithme de la Section~5.6 ne tire \emph{pas} directement selon la
+distribution pondérée $D_m(i)=w_i/\sum_{j\in S_m}w_j$ : il choisit d'abord
+la classe positive ou négative avec probabilité $\tfrac12$ chacune si les
+deux sont présentes dans $S_m$, sinon il échantillonne exclusivement dans
+l'unique classe présente. La distribution effectivement échantillonnée
+pour mettre à jour les automates de la clause $m$ est donc
+\[
+  Q_m(i) = \begin{cases}
+    \tfrac12\,w_i/W_m^+, & i\in S_m,\ y_i{=}1,\ W_m^+,W_m^->0,\\
+    \tfrac12\,w_i/W_m^-, & i\in S_m,\ y_i{=}0,\ W_m^+,W_m^->0,\\
+    w_i/W_m^+, & i\in S_m,\ y_i{=}1,\ W_m^-=0,\\
+    w_i/W_m^-, & i\in S_m,\ y_i{=}0,\ W_m^+=0,\\
+    0, & i\notin S_m.
+  \end{cases}
+\]
+Conditionnellement à l'historique du boosting et au tirage aléatoire de la
+condition $(F_m,z_m)$ du round $m$, et sur l'évènement $S_m\ne\emptyset$,
+les Théorèmes~\ref{thm:stat}, \ref{thm:sel}, \ref{thm:multi},
+\ref{thm:identif}, \ref{thm:identif-bruit} s'appliquent \emph{tels quels} à
+la clause $m$, chacun sous ses hypothèses respectives, avec $P(X,Y)$
+remplacée par $Q_m(X,Y)$ -- \emph{et non} par $D_m$.
+\end{theorem}
+
+\begin{proof}
+Les probabilités de transition \eqref{eq:pv}--\eqref{eq:pvbar} sont des
+fonctions linéaires de la loi utilisée pour générer les tirages
+effectivement présentés à l'automate ; elles ne supposent jamais une forme
+particulière de cette loi, donc substituer $Q_m$ à $P$ ne change aucune
+étape des preuves précédentes. $Q_m$, et non $D_m$, est la loi qui génère
+les $(x,y)$ réellement vus par la mise à jour de la clause $m$ (tirage
+50/50 puis proportionnel à $w$, Section~5.2) ; $D_m$ n'intervient que dans
+le calcul de l'erreur pondérée et de $\alpha_m$ (Section~5.3).
+\end{proof}
+
+\begin{remark}[Ce que ce théorème ne prouve pas]
+Il caractérise chaque round \emph{isolément}, conditionnellement à $Q_m$ --
+il ne prouve pas la convergence du vote pondéré final
+$f_c(x)=\sum_m\alpha_{c,m}h_{c,m}(x)$ vers un classifieur de Bayes global
+(ce qu'AdaBoost classique établit sous des hypothèses différentes, non
+reprises ici), ni que la structure identifiée round après round reste
+stable ou cohérente d'un round à l'autre. Nous ne revendiquons pas ce
+résultat plus fort : c'est précisément l'écart entre théorie de la règle
+locale et convergence de l'ensemble complet annoncé en introduction et en
+conclusion.
+\end{remark}
+
+\subsection{Extension multiclasse}
+
+Pour chaque classe $c$, on pose $Y^{(c)}=\mathbf 1[Y{=}c]$ et on entraîne un
+ensemble indépendant de clauses conditionnées et boostées pour ce problème
+binaire :
+\[
+  f_c(x) = \sum_{m=1}^{M} \alpha_{c,m}\, g_{c,m}(x)\,\bigl(2\,C_{c,m}(x)-1\bigr),
+  \qquad \hat y = \arg\max_c f_c(x).
+\]
+
+\subsection{Algorithme complet}
+
+\begin{quote}\ttfamily\small
+\textbf{Entrée} : dataset $\{(x_i,y_i)\}$, $n$ features, $N$ états, $M$
+clauses, $K$ features gelées/clause, $total$ tirages/clause, $S,a$.\\[4pt]
+$w_i \gets 1/|\text{train}|$ pour tout $i$\\[2pt]
+\textbf{pour} $m = 1$ à $M$ :\\
+\hspace*{1.5em}tirer $F\subseteq\{1,\ldots,n\}$, $|F|=K$, uniformément (shuffle)\\
+\hspace*{1.5em}tirer $v\in\{0,1\}^K$ uniformément (pile-ou-face indépendant/feature)\\
+\hspace*{1.5em}créer une clause $C_m$ conditionnée sur $(F,v)$ ; geler ces $K$ littéraux\\
+\hspace*{1.5em}$S_m \gets \{i : (x_i)_F = v\}$\\
+\hspace*{1.5em}\textbf{si} $S_m=\emptyset$ : $\alpha_m \gets 0$ ; \textbf{continuer}\\
+\hspace*{1.5em}\textbf{pour} $t = 1$ à $total$ :\\
+\hspace*{3em}tirer $i\in S_m$ selon $Q_m$ (50/50 classe, puis $\propto w_i$ dans la classe)\\
+\hspace*{3em}mettre à jour $C_m$ avec $(x_i,\mathbf 1[y_i{=}c])$ (règle à 4 cas)\\
+\hspace*{1.5em}\textbf{si} $C_m$ vide (aucun littéral inclus) : $\alpha_m \gets 0$ ; \textbf{continuer}
+\hspace*{1em}(pas de mise à jour des poids)\\
+\hspace*{1.5em}$\mathrm{err}_m \gets \sum_{i\in S_m} w_i\mathbf 1[C_m(x_i)\ne\mathbf 1[y_i{=}c]] \big/ \sum_{i\in S_m} w_i$ \hspace*{0.5em}(sous $D_m$)\\
+\hspace*{1.5em}$\mathrm{err}_m \gets \mathrm{clip}(\mathrm{err}_m,\epsilon,1-\epsilon)$\\
+\hspace*{1.5em}$\alpha_m \gets \tfrac12\ln\bigl((1-\mathrm{err}_m)/\mathrm{err}_m\bigr)$\\
+\hspace*{1.5em}\textbf{pour} $i \in S_m$ : $w_i \gets w_i \cdot \exp(\pm\alpha_m)$ (signe $+$ si erreur, $-$ sinon)\\
+\hspace*{1.5em}renormaliser $w$ sur tout le dataset\\[4pt]
+\textbf{retourner} $(C_1,\ldots,C_M)$, $(\alpha_1,\ldots,\alpha_M)$
+\end{quote}
+
+\textbf{Prédiction.} Pour $x$ et chaque classe $c$ :
+\[
+  \mathrm{score}_c(x) = \sum_{m=1}^M \alpha_{c,m}\cdot\bigl(2\,C_{c,m}(x)-1\bigr)\cdot\mathbf 1\bigl[(x)_{F_{c,m}}=v_{c,m}\bigr]\cdot\mathbf 1[C_{c,m}\text{ non vide}],
+\]
+puis $\hat y = \arg\max_c \mathrm{score}_c(x)$ (clause ignorée si sa
+condition n'est pas satisfaite par $x$ ou si elle est vide).
+
+\subsection{Complexité}
+
+Pour une classe donnée : la construction des sous-ensembles $S_m$ (tester,
+pour chacun des $N_{\mathrm{train}}$ exemples et chacune des $M$ clauses, si
+sa condition à $K$ features est satisfaite) coûte $O(M\,N_{\mathrm{train}}\,K)$ ;
+l'entraînement proprement dit coûte ensuite $O(M\cdot total\cdot(n-K))$
+(chacune des $M$ clauses reçoit $total$ tirages, chacun mettant à jour les
+$n-K$ automates libres -- les $K$ automates gelés ne sont jamais touchés).
+La mémoire est en $O(Mn)$ (deux automates par feature et par clause). La
+prédiction sur un exemple coûte $O(Mn)$ dans le pire cas, mais en pratique
+beaucoup moins : tester la condition de chacune des $M$ clauses coûte
+$O(MK)$, et une condition à $K$ features tirée uniformément n'est
+satisfaite que par une fraction $\approx2^{-K}$ des exemples en espérance,
+de sorte que le nombre \emph{attendu} de clauses dont on évalue ensuite la
+conjonction (coût $O(n-K)$ chacune) est $\approx M\cdot2^{-K}$. Le coût
+moyen de prédiction est donc
+\[
+  O\bigl(MK + M\cdot2^{-K}\cdot(n-K)\bigr).
+\]
+
+\section{Validation empirique}
+
+Comparaison de notre modèle à la Tsetlin Machine officielle
+(\texttt{pyTsetlinMachine}, configurations publiées) et à cinq baselines
+classiques (\texttt{scikit-learn}, hyperparamètres par défaut). Tous les
+modèles sont évalués sur les mêmes fichiers de données et, quand un
+remélange est nécessaire, la même seed par run ($20000+\text{run}$).
+Écart-type rapporté : $\sqrt{\frac1R\sum_r(\mathrm{acc}_r-\bar{\mathrm{acc}})^2}$
+(écart-type empirique de population, $1/R$, pas l'estimateur non biaisé
+$1/(R{-}1)$). \textbf{Budgets non égalisés} entre notre modèle et la TM
+(nombre de clauses différent par dataset, cf.\ ci-dessous, et même à nombre
+de clauses égal -- cf.\ MNIST -- le nombre de mises à jour par clause
+($total$) diffère du nombre d'epochs de la TM, donc le budget de calcul
+proprement dit reste distinct) : ces comparaisons ne sont donc pas
+équitables en termes de calcul. PCL (AAAI-25, related work le plus proche)
+n'est pas comparé systématiquement sur XOR/Digits/MNIST : PCL s'effondre
+sur XOR bruité avec ses hyperparamètres publiés (toutes les clauses restent
+vides), et son propre article ne l'évalue lui-même que sur la récupération
+de conjonctions synthétiques et sur Iris binaire -- pas sur des jeux
+multiclasses larges. Nous le comparons donc directement là où la
+comparaison est protocolairement fondée (Section~6.1 ci-dessous), en
+réutilisant le code officiel de PCL.
+
+\subsection{Comparaison directe à PCL}
+
+En reprenant le protocole exact de l'article PCL (code officiel,
+\texttt{dpcl-classifier/Main\_code\_AAAI25}), deux comparaisons directes :
+
+\textbf{Récupération d'une conjonction cible.} Protocole et paramètres par
+défaut du code officiel de PCL, inchangés : cible $C_{\mathrm{true}}$
+tirée aléatoirement (chaque littéral indépendamment positif, négatif ou
+absent, un littéral au moins forcé présent), table de vérité complète
+($2^n$ exemples, ordre fixe, sans remélange), $100$ epochs (soit $100
+\cdot 2^n$ mises à jour), $100$ runs, une seule clause, $N{=}10\,000$
+états pour les deux méthodes, automates initialisés adjacents à la
+frontière Include/Exclude ($N$ ou $N{+}1$). PCL : $p{=}0.75$ (défaut de
+leur code). Notre règle : $S{=}1.0$, $a{=}0.3$. Succès = littéraux appris
+exactement égaux aux littéraux cibles.
+\begin{center}
+\begin{tabular}{lccccc}
+\toprule
+$n$ & 4 & 6 & 8 & 10 & 12 \\
+\midrule
+PCL & 99/100 & 80/100 & 57/100 & 47/100 & 37/100 \\
+Notre règle & \textbf{100/100} & \textbf{100/100} & \textbf{100/100} & \textbf{100/100} & \textbf{100/100} \\
+\bottomrule
+\end{tabular}
+\end{center}
+Ce protocole balaie la table de vérité dans un ordre fixe répété sur $100$
+epochs -- une séquence déterministe périodique, pas un tirage i.i.d.\ de
+$(X_t,Y_t)$ au sens du Théorème~\ref{thm:identif} ; sans bruit, ce balayage
+complet représente néanmoins exactement la loi $P(X,Y)$ dégénérée voulue
+(chaque combinaison de $X$ avec sa vraie étiquette, sans distorsion), donc
+le résultat reste une validation directe et fidèle du théorème sur ce cas
+limite. Notre règle récupère la cible exactement sur les $100$ cibles
+testées à chaque $n$ (aucun échec observé, ce qui ne garantit pas une
+probabilité de succès exactement égale à $1$), là où PCL se dégrade avec
+$n$.
+
+\textbf{Iris binaire.} Classe versicolor contre les deux autres, 16
+features binaires, split 70/30 aléatoire, $p_i\sim U(0.6,0.8)$ par clause
+pour PCL (16 clauses, 100 epochs) -- protocole et données de l'article PCL.
+\begin{center}
+\begin{tabular}{lc}
+\toprule
+Méthode & Précision \\
+\midrule
+PCL (code officiel, $92.4\%$ publié) & $92.22\%\pm3.80\%$ \\
+Notre méthode complète ($M{=}300$, $K{=}2$, $total{=}2000$) & $93.60\%\pm3.63\%$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+Notre reproduction de PCL ($92.22\%$) est cohérente avec leur chiffre
+publié ($92.4\%$), validant le protocole. Les deux intervalles ($\pm1$
+écart-type) se recouvrent largement et $M$ diffère (300 clauses contre 16) :
+notre méthode complète est \emph{compétitive} avec PCL sur son propre
+protocole Iris, sans qu'on puisse affirmer une supériorité statistiquement
+significative sur cette seule expérience. Sur données réelles bruitées, la
+règle seule (sans conditions ni boosting) dégénère en revanche nettement --
+privée de tout mécanisme de diversité entre clauses, elle converge vers une
+structure unique répétée $M$ fois ; c'est l'ensemble conditionné et boosté
+complet (Section~5), et non la règle isolée, qui doit être comparé à PCL
+sur ce type de données.
+
+\subsection{Ablation : conditions et boosting}\label{sec:ablation}
+
+Sur XOR bruité (configuration de la Section~6.3 : $M{=}200$, $K{=}1$,
+$S{=}1.0$, $a{=}0.35$, $N{=}50$, $total{=}5000$), on active/désactive
+indépendamment les conditions aléatoires et le boosting AdaBoost, à
+hyperparamètres fixes ($10$ runs) :
+\begin{center}
+\begin{tabular}{lc}
+\toprule
+Variante & Précision \\
+\midrule
+A. Règle seule (sans conditions, sans boosting) & $48.86\%\pm0.00\%$ \\
+B. + conditions seules (sans boosting) & $\mathbf{100.00\%\pm0.00\%}$ \\
+C. + boosting seul (sans conditions) & $48.86\%\pm0.00\%$ \\
+D. Modèle complet (conditions + boosting) & $\mathbf{100.00\%\pm0.00\%}$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+Les variantes A et C sont numériquement identiques : sans conditions,
+$S{=}1.0$ rend la mise à jour déterministe sur la branche dominante (les
+exemples négatifs, majoritaires), si bien que toutes les clauses convergent
+vers la même structure quels que soient les poids AdaBoost -- le
+rééquilibrage des poids ne peut pas créer de diversité entre des clauses
+qui ignorent ces poids. Sur ce problème, \textbf{l'expressivité provient
+du conditionnement aléatoire, pas du boosting} : geler une variable rend
+la seconde localement informative sur chaque sous-ensemble conditionné (un
+mécanisme cohérent avec le Théorème~\ref{thm:sel}, mais dont la
+contribution exacte à l'expressivité de l'ensemble n'est pas analysée
+formellement, cf.\ Théorème~\ref{thm:boosting}). Le boosting n'ajoute rien
+ici au-delà des conditions ($B=D$) ; son rôle -- pondérer et filtrer les
+clauses faibles à plus grande échelle -- est plausiblement plus utile sur
+des problèmes multiclasses (Digits, MNIST) que sur XOR, mais cela n'est pas
+testé ici.
+
+\subsection{XOR}
+Fichiers fixes (\texttt{NoisyXORTrainingData.txt}/\texttt{TestData.txt},
+5000/5000), aucun remélange. Notre modèle : $M{=}200$, $K{=}1$, $S{=}1.0$,
+$a{=}0.35$, $N{=}50$, $total{=}5000$. TM : 20 clauses, $T{=}15$, $s{=}3.9$,
+200 epochs. 20 runs partout.
+\begin{center}
+\begin{tabular}{lc}
+\toprule
+Modèle & Précision \\
+\midrule
+Notre modèle & $\mathbf{100\%\pm0\%}$ \\
+Tsetlin Machine (officielle) & $97.40\%\pm2.23\%$ \\
+SVM & $98.12\%\pm0\%$ \\
+MLP & $76.72\%\pm1.97\%$ \\
+Random Forest & $66.52\%\pm0.30\%$ \\
+Régression logistique & $48.94\%\pm0\%$ \\
+Naive Bayes & $49.12\%\pm0\%$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Iris}
+Fichier unique (\texttt{BinaryIrisData.txt}, 149 exemples), remélangé 80/20 à
+chaque run. Notre modèle : $M{=}1500$, $K{=}2$, $S{=}1.0$, $a{=}0.3$,
+$N{=}100$, $total{=}20000$. TM : 300 clauses, $T{=}10$, $s{=}3.0$, 500 epochs.
+20 runs partout.
+\begin{center}
+\begin{tabular}{lc}
+\toprule
+Modèle & Précision \\
+\midrule
+Notre modèle & $\mathbf{95.5\%\pm4.25\%}$ \\
+Random Forest & $95.33\%\pm3.86\%$ \\
+MLP & $94.50\%\pm3.38\%$ \\
+Tsetlin Machine (officielle) & $93.50\%\pm4.28\%$ \\
+SVM & $92.67\%\pm4.03\%$ \\
+Régression logistique & $92.50\%\pm4.70\%$ \\
+Naive Bayes & $90.67\%\pm4.29\%$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+Notre modèle et Random Forest sont dans la marge de bruit l'un de l'autre.
+
+\subsection{Digits}
+Fichiers fixes (\texttt{BinaryDigitsTrainingData192.txt}/\texttt{TestData192.txt},
+1437/360), aucun remélange. Notre modèle : $M{=}2000$, $K{=}2$, $S{=}0.05$,
+$a{=}1.0$, $N{=}100$, $total{=}20000$. TM : 1000 clauses, $T{=}10$, $s{=}3.0$,
+300 epochs. 10 runs partout.
+\begin{center}
+\begin{tabular}{lc}
+\toprule
+Modèle & Précision \\
+\midrule
+Notre modèle & $\mathbf{97.19\%\pm0.40\%}$ \\
+SVM & $97.50\%\pm0\%$ \\
+Random Forest & $97.31\%\pm0.31\%$ \\
+MLP & $97.17\%\pm0.41\%$ \\
+Régression logistique & $96.11\%\pm0\%$ \\
+Tsetlin Machine (officielle) & $93.69\%\pm0.76\%$ \\
+Naive Bayes & $91.39\%\pm0\%$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{MNIST}
+Fichiers fixes (\texttt{MNISTTraining.txt}/\texttt{Test.txt}, 60000/10000),
+aucun remélange. Notre modèle : $M{=}16000$, $K{=}2$, $S{=}1.0$, $a{=}0.3$,
+$N{=}100$, $total{=}20000$. TM : 4000 clauses/classe, $T{=}50$, $s{=}10.0$,
+20 epochs.
+\begin{center}
+\begin{tabular}{lc}
+\toprule
+Modèle & Précision \\
+\midrule
+SVM & $\mathbf{97.71\%\pm0\%}$ \\
+Random Forest & $97.07\%\pm0.06\%$ \\
+MLP & $96.90\%\pm1.03\%$ \\
+Tsetlin Machine (officielle, 4000 clauses/classe) & $96.62\%\pm0.07\%$ (3 runs) \\
+Notre modèle ($M{=}16000$/classe) & $95.85\%$ (1 run) \\
+Régression logistique & $91.89\%\pm0\%$ \\
+Notre modèle ($M{=}4000$/classe, nombre de clauses égal à la TM) & $93.56\%$ (1 run) \\
+Naive Bayes & $84.23\%\pm0\%$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Effet de $M$ sur la précision}
+
+Sur XOR (config.\ Section~6.1 fixée, $M$ variable, 20 runs/point) :
+\begin{center}
+\begin{tabular}{lccccccc}
+\toprule
+$M$ & 5 & 10 & 20 & 50 & 100 & 200 & 400 \\
+\midrule
+Précision & 64.9\% & 75.1\% & 84.7\% & 96.8\% & 99.3\% & 100\% & 100\% \\
+\bottomrule
+\end{tabular}
+\end{center}
+Rendements décroissants nets, saturés dès $M{=}200$ (configuration
+retenue en Section~6.1). %TODO : ajouter Digits/MNIST des que le sweep
+% Onyxia (M=100..2000 pour Digits, M=500..2000 pour MNIST) est termine ;
+% points M=4000/8000/16000 deja disponibles ci-dessus pour MNIST.
+
+\section{Limites et conclusion}
+
+\textbf{Ce qui est prouvé.} La règle locale à quatre cas admet une loi
+stationnaire exacte sous toute loi $P(X,Y)$ (Théorème~\ref{thm:stat}), ne
+peut pas favoriser stationnairement l'inclusion simultanée d'un littéral et
+de sa négation (Lemme~\ref{lem:excl} -- à $N$ fini, l'état instantané peut
+néanmoins se trouver transitoirement du mauvais côté, avec probabilité
+$\le\rho^{-N}\to0$), présente exactement l'un de trois régimes de
+préférence stationnaire déterminés par le signe de $\Delta,\bar\Delta$
+(Théorème~\ref{thm:sel}), et
+concentre, pour une clause entière à $n-K$ variables libres, autour de la
+structure stationnaire préférée $C^\star$ à un taux $2(n-K)\gamma_{\min}^{-N}$
+(Théorème~\ref{thm:multi}). Sous des conditions explicites d'identifiabilité
+(dépendance et déséquilibre arbitraires des features, Théorème~\ref{thm:identif}),
+cette concentration porte sur la véritable conjonction génératrice
+$C_{\mathrm{true}}$ et non plus seulement sur une structure définie
+implicitement par $P$, et reste valide sous un bruit de labels arbitraire
+de probabilité $\eta<\mu/(S+a)$ (Théorème~\ref{thm:identif-bruit}). Ces résultats sont chacun validés
+empiriquement par simulation directe de la dynamique (Figures~\ref{fig:thm6}
+et~\ref{fig:thm7}) et, pour l'identification, par comparaison directe à
+PCL sur son propre protocole (Section~6.1).
+
+\textbf{Ce qui ne l'est pas.} Le Théorème~\ref{thm:boosting} montre que
+chaque round de boosting, pris isolément, est couvert exactement par les
+résultats ci-dessus (avec $P$ remplacée par la distribution effective
+$Q_m$) : l'écart restant n'est donc pas que « la théorie ne dit rien sur
+le système entraîné », mais que la \emph{composition} entre rounds --
+convergence du vote pondéré final $\sum_m\alpha_m h_m$ vers un classifieur
+global -- n'est pas analysée. Les résultats sur MNIST à $M$ élevé ($8000$,
+$16000$) reposent sur un seul run chacun, sans écart-type ; les
+comparaisons à la TM ne sont pas systématiquement à budget de calcul égal ;
+PCL n'est pas inclus comme baseline complète en dehors d'Iris et de XOR ;
+l'ablation de la Section~6.2 isole l'effet des conditions et du boosting
+sur XOR, mais une étude systématique de $S,a,N,K,M,total$ pris séparément
+n'a pas été menée à ce stade.
+
+\textbf{Conclusion.} En découplant entièrement la mise à jour de chaque
+automate de la sortie de la clause et du vote de l'ensemble, la règle à
+quatre cas admet une analyse de convergence exacte, sous une loi $P(X,Y)$
+arbitraire, que ni les machines de Tsetlin ni PCL ne permettent sous cette
+généralité. Intégrée dans un ensemble conditionné et boosté simple, elle
+atteint $100\%\pm0\%$ sur XOR bruité et des performances compétitives sur
+Iris, Digits et MNIST, tout en laissant ouverte l'analyse de convergence de
+l'ensemble complet.
+
+\end{document}

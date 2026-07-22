@@ -1,0 +1,4 @@
+Iris binaire (versicolor vs reste), 200 runs, 16 clauses, 100 epochs, split 70/30 aleatoire
+PCL (code officiel) : 91.96% +/- 4.98%  (min=66.67%, max=100.00%)
+Notre regle          : 67.14% +/- 6.32%  (min=51.11%, max=82.22%)
+temps total : 40.3s

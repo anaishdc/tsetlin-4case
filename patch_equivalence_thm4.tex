@@ -1,0 +1,167 @@
+\documentclass[11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{geometry}
+\geometry{margin=2.5cm}
+
+\newtheorem{theorem}{Théorème}
+\newtheorem{proposition}{Proposition}
+\newtheorem{lemma}{Lemme}
+\newtheorem{corollary}{Corollaire}
+\newtheorem{definition}{Définition}
+\newtheorem{hypothesis}{Hypothèse}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remarque}
+
+\newcommand{\Inc}{\ensuremath{\mathrm{Inc}}}
+\newcommand{\Exc}{\ensuremath{\mathrm{Exc}}}
+\newcommand{\vbar}{\bar{v}}
+
+\begin{document}
+
+\begin{center}
+{\LARGE\bfseries Renforcement du Théorème 4 en équivalence}\\[4pt]
+{\large Suite à la suggestion de Florent (analogue au Corollaire 2)}
+\end{center}
+\vspace{1em}
+
+Florent a remarqué que le Corollaire 2 (non-contradiction) est en fait une
+équivalence, pas seulement une implication : $(a\le c$ et $d\le b) \iff
+(\Delta+\bar\Delta\le0$ pour toute loi$)$. Il propose la même chose pour le
+Théorème 4 (identification). On montre ici que c'est vrai, en identifiant
+précisément ce qui est trivial et ce qui demande une preuve nouvelle.
+
+\section{Énoncé renforcé}
+
+\begin{theorem}[Identification -- version équivalence]\label{thm:identif-equiv}
+Sous l'Hypothèse~1, supposons $Y=Y^\star$ presque sûrement, la loi jointe de
+$(X_1,\ldots,X_n)$ étant quelconque. Les trois assertions suivantes sont
+équivalentes :
+\begin{enumerate}
+\item[(i)] Pour tout $j\in J^+$ : $aA_j+dD_j>cB_j$ ; pour tout $j\in J^-$ :
+$aB_j+dC_j>cA_j$ ; pour tout $k\notin J^+\cup J^-$ : $aA_k+dD_k<bC_k+cB_k$
+\emph{et} $aB_k+dC_k<cA_k+bD_k$.
+\item[(ii)] $\Delta_j>0$ et $\bar\Delta_j<0$ pour $j\in J^+$ ; $\bar\Delta_j>0$
+et $\Delta_j<0$ pour $j\in J^-$ ; $\Delta_k<0$ et $\bar\Delta_k<0$ pour
+$k\notin J^+\cup J^-$.
+\item[(iii)] $\displaystyle\lim_{N\to\infty}\limsup_{t\to\infty}P(C_t\ne C_{\mathrm{true}})=0$.
+\end{enumerate}
+\end{theorem}
+
+\section{(i) $\iff$ (ii) : une identité, rien de nouveau}
+
+\begin{proof}[Preuve de (i)$\iff$(ii)]
+Pour $j\in J^+$ : $Y^\star=1\Rightarrow X_j=1$ (définition de $C_{\mathrm{true}}$),
+donc $C_j=0$. Dans $\Delta_j=aA_j+dD_j-bC_j-cB_j$, le terme $bC_j$ s'annule :
+$\Delta_j=aA_j+dD_j-cB_j$. Donc ``$\Delta_j>0$'' et ``$aA_j+dD_j>cB_j$'' sont
+la \emph{même} affirmation, pas deux affirmations à relier. Sous
+l'Hypothèse~1, le Corollaire~2 donne déjà $\Delta_j>0\Rightarrow\bar\Delta_j<0$ ;
+la clause ``et $\bar\Delta_j<0$'' de (ii) est donc automatique, pas une
+condition supplémentaire à vérifier. Symétriquement pour $j\in J^-$ (avec
+$D_j=0$). Pour $k\notin J^+\cup J^-$, aucune simplification logique
+n'intervient : $\Delta_k<0$ et $aA_k+dD_k<bC_k+cB_k$ sont, par définition
+même de $\Delta_k$, la même inégalité ; idem pour $\bar\Delta_k$. Donc (i) et
+(ii) sont mot pour mot la même chose, une fois les définitions substituées.
+\end{proof}
+
+\section{(ii) $\Rightarrow$ (iii) : déjà prouvé}
+
+C'est exactement le contenu du Théorème 4 original combiné au Théorème 3
+(concentration, version corrigée pour les cas absorbants) : si chaque
+automate a la dérive de signe requis, $C^\star=C_{\mathrm{true}}$, et le
+Théorème 3 donne la limite double annoncée. Rien à ajouter ici.
+
+\section{(iii) $\Rightarrow$ (ii) : la partie nouvelle}
+
+C'est ici la vraie contribution de la suggestion de Florent. On procède par
+contraposée : on montre que si (ii) est en défaut pour \emph{un seul}
+littéral, alors (iii) est faux -- la limite double ne vaut pas $0$, elle
+vaut $1$ (ou au moins $1/2$ dans un cas limite).
+
+\begin{lemma}\label{lem:witness}
+S'il existe $j_0\in J^+$ tel que $\Delta_{j_0}\le0$, alors
+$\lim_{N\to\infty}\limsup_{t\to\infty}P(C_t\ne C_{\mathrm{true}})=1$.
+\end{lemma}
+
+\begin{proof}
+Deux cas, selon le signe de $\Delta_{j_0}$.
+
+\emph{Cas $\Delta_{j_0}<0$.} Alors $\rho_{j_0}=p_{j_0}^+/p_{j_0}^-<1$. Par le
+Théorème 1, la loi stationnaire de $v_{j_0}$ vérifie
+$\pi(\Inc)=\rho_{j_0}^N/(1+\rho_{j_0}^N)$, donc
+$\pi(\Exc)=1/(1+\rho_{j_0}^N)$. Comme $C_{\mathrm{true}}$ exige $x_{j_0}$
+inclus (car $j_0\in J^+$), tout état $C_t$ où $v_{j_0}$ est en $\Exc$ vérifie
+$C_t\ne C_{\mathrm{true}}$. Donc, par le théorème ergodique (Théorème 1) :
+\[
+  \limsup_{t\to\infty}P(C_t\ne C_{\mathrm{true}})
+  \ge \limsup_{t\to\infty}P(v_{j_0,t}=\Exc) = \pi(\Exc) = \frac1{1+\rho_{j_0}^N}.
+\]
+Comme $\rho_{j_0}<1$, $\rho_{j_0}^N\to0$ quand $N\to\infty$, donc
+$\frac1{1+\rho_{j_0}^N}\to1$. D'où
+$\lim_{N\to\infty}\limsup_{t\to\infty}P(C_t\ne C_{\mathrm{true}})\ge1$, donc
+$=1$ (une probabilité ne dépasse pas $1$).
+
+\emph{Cas $\Delta_{j_0}=0$ (cas limite).} Sous l'Hypothèse de généricité
+(pas $p^+=p^-=0$), on a alors $p_{j_0}^+=p_{j_0}^->0$, donc $\rho_{j_0}=1$.
+Par le Théorème 1 (cas $\rho=1$), la loi stationnaire est uniforme :
+$\pi(k)=1/(2N)$ pour tout $k$, donc $\pi(\Exc)=\pi(\Inc)=1/2$ --
+\emph{exactement}, sans dépendre de $N$. Le même argument que ci-dessus donne
+\[
+  \limsup_{t\to\infty}P(C_t\ne C_{\mathrm{true}}) \ge \pi(\Exc) = \frac12,
+  \qquad\text{et ce pour tout } N,
+\]
+donc $\lim_{N\to\infty}\limsup_{t\to\infty}P(C_t\ne C_{\mathrm{true}})\ge\frac12\ne0$.
+\end{proof}
+
+\begin{remark}
+Le cas absorbant ($p_{j_0}^-=0$, $p_{j_0}^+>0$ mais dans le \emph{mauvais}
+sens -- ce qui ne peut se produire ici que si en fait $\Delta_{j_0}>0$, donc
+hors du champ de ce lemme) ne pose pas de problème symétrique : si
+$\Delta_{j_0}\le0$ correspond à un cas absorbant (i.e. $p_{j_0}^+=0$),
+l'automate se bloque en $\Exc$ en temps fini (Corollaire 1), ce qui donne
+directement $\limsup_t P(C_t\ne C_{\mathrm{true}})=1$ pour tout $N$, encore
+plus fort que la conclusion du Lemme~\ref{lem:witness}.
+\end{remark}
+
+\begin{lemma}\label{lem:witness-neg}
+S'il existe $j_0\in J^-$ tel que $\bar\Delta_{j_0}\le0$, ou $k_0\notin
+J^+\cup J^-$ tel que $\Delta_{k_0}\ge0$ ou $\bar\Delta_{k_0}\ge0$, alors de
+même $\lim_{N\to\infty}\limsup_{t\to\infty}P(C_t\ne C_{\mathrm{true}})\in\{\tfrac12,1\}\ne0$.
+\end{lemma}
+
+\begin{proof}
+Identique au Lemme~\ref{lem:witness}, en remplaçant $v_{j_0}$ par
+$\vbar_{j_0}$ (pour $j_0\in J^-$, où $C_{\mathrm{true}}$ exige $\vbar_{j_0}$
+en $\Inc$), ou par $v_{k_0}$ (resp. $\vbar_{k_0}$) pour $k_0$ non pertinent
+(où $C_{\mathrm{true}}$ exige $\Exc$ des deux côtés). Le même calcul
+(Théorème 1, cas $\rho<1$ absent ici puisqu'on suppose le signe manquant
+dans l'autre sens -- $\rho\ge1$ -- donne $\pi(\Inc)\to1$ ou $\pi(\Inc)=1/2$)
+s'applique mot pour mot.
+\end{proof}
+
+\begin{proof}[Preuve de (iii)$\Rightarrow$(ii), par contraposée]
+Supposons (ii) faux : il existe au moins un littéral en défaut. Par les
+Lemmes~\ref{lem:witness} et~\ref{lem:witness-neg} (appliqués au littéral en
+question, quel que soit son rôle $J^+$, $J^-$, ou non pertinent), on obtient
+\[
+  \lim_{N\to\infty}\limsup_{t\to\infty}P(C_t\ne C_{\mathrm{true}}) \ge \frac12 \ne 0,
+\]
+donc (iii) est faux. Par contraposée, (iii)$\Rightarrow$(ii).
+\end{proof}
+
+\section{Conclusion}
+
+Les trois assertions (i), (ii), (iii) sont bien équivalentes : (i)$\iff$(ii)
+est une identité algébrique (rien de neuf), (ii)$\Rightarrow$(iii) est le
+Théorème 4 déjà prouvé, et (iii)$\Rightarrow$(ii) est nouveau -- démontré
+ici par contraposée, littéral par littéral, en distinguant le cas où le
+signe est carrément inversé ($\rho\ne1$, le mauvais régime domine par le
+Théorème 1) du cas limite où il est exactement nul ($\rho=1$, loi
+stationnaire uniforme, probabilité d'erreur bloquée à $1/2$ quel que soit
+$N$). Florent avait raison : c'est la même stratégie que pour le Corollaire 2
+(exploiter le fait qu'une hypothèse ``pour toute loi'' ou ``ça marche
+toujours'' peut être mise en défaut par un seul témoin bien choisi), appliquée
+à un théorème différent.
+
+\end{document}

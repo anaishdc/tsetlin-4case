@@ -1,0 +1,372 @@
+\documentclass[12pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[top=2.5cm,bottom=2.5cm,left=2.8cm,right=2.8cm]{geometry}
+\usepackage{parskip}
+\usepackage{booktabs}
+
+\newtheorem{theorem}{Théorème}
+\newtheorem{lemma}[theorem]{Lemme}
+\newtheorem{corollary}[theorem]{Corollaire}
+\newtheorem{remark}[theorem]{Remarque}
+\newtheorem{definition}[theorem]{Définition}
+\newtheorem{example}[theorem]{Exemple}
+
+\newcommand{\Inc}{\ensuremath{\mathrm{Inc}}}
+\newcommand{\Exc}{\ensuremath{\mathrm{Exc}}}
+\newcommand{\vbar}{\bar{v}}
+
+\begin{document}
+
+\section*{Analyse théorique de la règle à 4 cas}
+
+Cette section prouve la convergence de la règle locale à 4 cas elle-même et pas le systeme complet : 
+
+\subsection*{}
+
+Soit $(X_t,Y_t)_{t\ge1}\overset{\text{i.i.d.}}{\sim}P$ de loi jointe $P(X,Y)$
+arbitraire. Deux automates à $2N$ états gouvernent le littéral $x$ et sa
+négation : $v$ et $\vbar$, avec $\mathrm{included}(s)=\mathbf 1[s>N]$.
+
+\begin{center}
+\begin{tabular}{cccc}
+\toprule
+$x$ & $y$ & Action sur $v$ & Action sur $\vbar$ \\
+\midrule
+0 & 0 & vers $\Inc(S)$ & vers $\Exc(S)$ \\
+0 & 1 & vers $\Exc(a)$ & -- \\
+1 & 0 & vers $\Exc(S)$ & vers $\Inc(S)$ \\
+1 & 1 & -- & vers $\Exc(a)$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+avec $S,a\in(0,1]$. Les probabilités de transition intérieures s'écrivent, pour toute loi $P$ :
+\begin{align}
+  p^+ &= S\,P(0,0), & p^- &= S\,P(1,0) + a\,P(0,1); \label{eq:pv}\\
+  \bar p^+ &= S\,P(1,0), & \bar p^- &= S\,P(0,0) + a\,P(1,1). \label{eq:pvbar}
+\end{align}
+
+
+
+\subsection*{Loi stationnaire exacte}
+
+\begin{theorem}\label{thm:stat}
+Soit $\rho=p^+/p^-$, avec $p^+,p^->0$. La chaîne $(v_t)$ est irréductible et
+apériodique sur $\{1,\ldots,2N\}$, donc $\mathcal L(v_t)\xrightarrow[t\to\infty]{}\pi$
+(convergence en loi vers l'unique loi stationnaire, théorème ergodique
+standard pour les chaînes de Markov finies irréductibles apériodiques), de
+loi stationnaire
+\[
+  \pi(k) = \frac{(1-\rho)\rho^{k-1}}{1-\rho^{2N}}\ (\rho\ne1), \qquad
+  \pi(k) = \frac1{2N}\ (\rho=1), \qquad
+  \pi(\Inc) = \frac{\rho^N}{1+\rho^N}.
+\]
+Si $\rho>1$ : $\pi(\Inc)\to1$ et $1-\pi(\Inc)\le\rho^{-N}$. Si $\rho<1$ :
+$\pi(\Exc)\to1$ symétriquement. De plus $\frac1T\sum_{t\le T}\mathbf1[v_t>N]\to\pi(\Inc)$ p.s.
+\emph{Attention} : ceci est une convergence en loi (stationnaire) et une
+convergence p.s.\ de la \emph{fréquence temporelle} -- pas une convergence
+p.s.\ de $v_t$ vers un état fixe. Dans le cas ergodique ($p^+,p^->0$),
+l'automate continue de se déplacer indéfiniment ; il n'y a stabilisation
+permanente que dans le cas absorbant (Corollaire~\ref{cor:absorb}).
+\end{theorem}
+
+\begin{proof}
+\emph{Irréductibilité.} Chaîne de naissance-mort à transitions intérieures
+strictement positives.
+
+\emph{Noyau explicite.} Pour $2\le k\le 2N-1$ : $P(k,k{+}1)=p^+$,
+$P(k,k{-}1)=p^-$, $P(k,k)=1-p^+-p^-$. Aux bornes (troncature) :
+$P(1,1)=1-p^+$, $P(1,2)=p^+$, $P(2N,2N)=1-p^-$, $P(2N,2N{-}1)=p^-$.
+
+\emph{Apériodicité.} $P(1,1)=1-p^+\ge p^->0$ : l'état $1$ a un cycle de
+longueur $1$, donc une période $d(1)=1$. Par irréductibilité, la période est
+une propriété de classe : toute la chaîne est apériodique.
+
+\emph{Forme géométrique.} Bilan détaillé $\pi(k)p^+=\pi(k{+}1)p^-$ donne
+$\pi(k{+}1)/\pi(k)=\rho$ constant, soit $\pi(k)=\pi(1)\rho^{k-1}$ ;
+normalisation $\sum_{k=1}^{2N}\pi(k)=1=\pi(1)\sum_{k=0}^{2N-1}\rho^k$ donne
+$\pi(1)=(1-\rho)/(1-\rho^{2N})$ (série géométrique finie), d'où les formules
+annoncées. $\pi(\Inc)=\sum_{k=N+1}^{2N}\pi(k)=\pi(1)\rho^N\sum_{k=0}^{N-1}\rho^k
+=\pi(1)\rho^N(1-\rho^N)/(1-\rho)=\rho^N(1-\rho^N)/(1-\rho^{2N})=\rho^N/(1+\rho^N)$.
+La convergence p.s.\ de la moyenne temporelle est le théorème ergodique
+standard.
+\end{proof}
+
+\begin{corollary}[Cas absorbant]\label{cor:absorb}
+Si $p^-=0,p^+>0$ : absorption p.s. en $2N$ en temps fini,
+$\mathbb E[T_{2N}]=(2N-s_0)/p^+$ ; première entrée dans $\Inc$ (franchissement
+de $N$), généralement plus rapide, $\mathbb E[T_{\Inc}]=(N+1-s_0)_+/p^+$. Si
+$p^+=0,p^->0$ : symétrique en $1$/$\Exc$. Si $p^+=p^-=0$ : aucune transition
+ne se produit jamais (chaque état trivialement absorbant), l'automate reste
+figé à $s_0$.
+\end{corollary}
+
+\subsection*{Exclusion des dérives contradictoires}
+
+\begin{lemma}\label{lem:excl}
+Soit $\Delta=p^+-p^-$, $\bar\Delta=\bar p^+-\bar p^-$. Pour toute loi $P(X,Y)$ :
+\[
+  \Delta+\bar\Delta = -a\,P(Y{=}1) \le 0.
+\]
+Si $P(Y{=}1)>0$, l'inégalité est \emph{stricte} : $\Delta+\bar\Delta<0$, donc
+$\Delta=\bar\Delta=0$ simultanément est impossible. Si $P(Y{=}1)=0$ (cas
+dégénéré), $\Delta+\bar\Delta=0$ exactement.
+\end{lemma}
+
+\begin{proof}
+De \eqref{eq:pv}--\eqref{eq:pvbar} : $\Delta = S\,P(0,0)-S\,P(1,0)-a\,P(0,1)$,
+$\bar\Delta = S\,P(1,0)-S\,P(0,0)-a\,P(1,1)$. La somme élimine les termes en
+$S$ : $\Delta+\bar\Delta=-a[P(0,1)+P(1,1)]=-a\,P(Y{=}1)\le0$, avec égalité
+ssi $P(Y{=}1)=0$ (puisque $a>0$).
+\end{proof}
+
+\begin{corollary}\label{cor:asym}
+Si $\Delta>0$ alors $\bar\Delta=-a\,P(Y{=}1)-\Delta<0$ strictement.
+\end{corollary}
+
+\begin{remark}
+Le lemme exclut $\Delta>0$ et $\bar\Delta>0$ simultanément ; il n'exclut pas
+$\Delta<0$ et $\bar\Delta<0$ simultanément (double exclusion, régime neutre).
+Pour $N$ fini et $\rho\ne1$, l'état instantané peut néanmoins se trouver du
+mauvais côté avec probabilité $\le\rho^{-N}\to0$.
+\end{remark}
+
+\subsection*{Sélection sous loi arbitraire}
+
+\begin{theorem}\label{thm:sel}
+Supposons $\Delta\ne0$ et $\bar\Delta\ne0$. Notons $\gamma=\max(\rho,1/\rho)>1$,
+$\bar\gamma=\max(\bar\rho,1/\bar\rho)>1$ (probabilité du mauvais côté toujours
+$\le\gamma^{-N}$, resp.\ $\bar\gamma^{-N}$, quel que soit le signe de
+$\Delta,\bar\Delta$). Alors exactement un des trois régimes suivants a lieu :
+\begin{itemize}
+  \item $\Delta>0$ (donc $\bar\Delta<0$) $\iff S\,P(0,0)>S\,P(1,0)+a\,P(0,1)$ :
+  \[
+    \lim_{N\to\infty}\;\limsup_{t\to\infty}\;\mathbb P\bigl((v_t,\vbar_t)\ne(\Inc,\Exc)\bigr) = 0.
+  \]
+  \item $\bar\Delta>0$ (donc $\Delta<0$) $\iff S\,P(1,0)>S\,P(0,0)+a\,P(1,1)$ :
+  \[
+    \lim_{N\to\infty}\;\limsup_{t\to\infty}\;\mathbb P\bigl((v_t,\vbar_t)\ne(\Exc,\Inc)\bigr) = 0.
+  \]
+  \item $\Delta<0$ et $\bar\Delta<0$ :
+  \[
+    \lim_{N\to\infty}\;\limsup_{t\to\infty}\;\mathbb P\bigl((v_t,\vbar_t)\ne(\Exc,\Exc)\bigr) = 0.
+  \]
+\end{itemize}
+
+\end{theorem}
+
+\begin{proof}
+Les équivalences découlent de \eqref{eq:pv}--\eqref{eq:pvbar}. L'exclusion
+mutuelle des trois régimes découle du Corollaire~\ref{cor:asym}. Passage du
+marginal au joint (cas $\Delta>0$ : $\rho>1$ donc $\gamma=\rho$, $\bar\rho<1$
+donc $\bar\gamma=1/\bar\rho$ ; similaire ailleurs), \emph{sans} invoquer de loi
+stationnaire jointe (la chaîne $(v_t,\vbar_t)$ n'est pas nécessairement
+irréductible -- ex.\ $S{=}1$, $P(Y{=}1){=}0$ conserve $v_t+\vbar_t$). En
+prenant d'abord $\limsup_{t\to\infty}$ (la borne du Théorème~\ref{thm:stat}
+porte sur la loi \emph{stationnaire}, atteinte seulement asymptotiquement en
+$t$ -- fausse pour un $t$ petit et une initialisation arbitraire), puis par
+union bound,
+\[
+  \limsup_{t\to\infty}\mathbb P\bigl((v_t,\vbar_t)\ne(\Inc,\Exc)\bigr)
+  \le \limsup_{t\to\infty}\mathbb P(v_t\ne\Inc)+\limsup_{t\to\infty}\mathbb P(\vbar_t\ne\Exc)
+  \le \gamma^{-N}+\bar\gamma^{-N},
+\]
+sans hypothèse d'indépendance entre $v_t$ et $\vbar_t$. Puis
+$\gamma^{-N}+\bar\gamma^{-N}\xrightarrow[N\to\infty]{}0$ donne la double
+limite annoncée. Noter $\bar\gamma^{-N}=\bar\rho^N$ ici (pas $\bar\rho^{-N}$,
+puisque $\bar\rho<1$) : c'est pour éviter cette confusion de signe que
+$\gamma=\max(\rho,1/\rho)$ est défini une fois pour toutes.
+\end{proof}
+
+
+
+\subsection*{Concentration multi-bit}
+
+\begin{theorem}\label{thm:multi}
+Clause à $n$ features, $K$ fixées par la condition, $d=n-K$ libres gouvernées par
+$2d$ automates. Pour chaque automate $j$ (préférence stationnaire non
+dégénérée), $r_j=p_j^+/p_j^-$, $\gamma_j=\max(r_j,1/r_j)>1$,
+$\gamma_{\min}=\min_j\gamma_j$. Alors, sans hypothèse d'indépendance,
+l'erreur de \emph{récupération structurelle} vérifie :
+\[
+  \limsup_{t\to\infty}\mathbb P(C_t\ne C^\star) \le \sum_{j=1}^{2d}\frac1{1+\gamma_j^N}
+  \le 2(n-K)\,\gamma_{\min}^{-N} \xrightarrow[N\to\infty]{} 0.
+\]
+\end{theorem}
+
+\begin{proof}
+Soit $A_j$ l'évènement « l'automate $j$ est du mauvais côté ». Si tous les
+$A_j$ sont faux, chaque automate est dans son état préféré, donc $C_t=C^\star$ ;
+par contraposée, $\{C_t\ne C^\star\}\subseteq A_1\cup\cdots\cup A_{2d}$, d'où
+par l'union bound (Boole) :
+\[
+  \mathbb P(C_t\ne C^\star)\le\sum_{j=1}^{2d}\mathbb P(A_j).
+\]
+Par le Théorème~\ref{thm:stat}, $\mathbb P(A_j)=\pi(\Exc)=1/(1+r_j^N)$ si
+$r_j>1$, ou $\pi(\Inc)=r_j^N/(1+r_j^N)$ si $r_j<1$ -- dans les deux cas
+exactement $1/(1+\gamma_j^N)$, d'où la première inégalité. Ensuite,
+$1/(1+\gamma_j^N)<\gamma_j^{-N}$ (dénominateur plus grand), et
+$\gamma_j\ge\gamma_{\min}$ donne $\gamma_j^{-N}\le\gamma_{\min}^{-N}$ ; en
+remplaçant chacun des $2d$ termes par cette même borne on obtient
+$2(n-K)\,\gamma_{\min}^{-N}$.
+\end{proof}
+
+
+
+
+
+\section*{Application : ensemble conditionné et boosté}
+
+On intègre la règle à 4 cas dans un ensemble conditionné (gates aléatoires)
+et boosté (AdaBoost) pour illustrer son utilité pratique en classification.
+\textbf{L'analyse de convergence complète de cet ensemble --
+couverture des conditions sous la distribution adaptative $Q_m$, et
+convergence du vote pondéré final -- n'est pas prouvée ici et reste un
+travail futur.} Les résultats ci-dessous (couverture, boosting) caractérisent
+des propriétés partielles utiles mais ne ferment pas cette boucle.
+
+\subsection*{Algorithme}
+
+Classifieur multiclasse one-vs-rest : une classe $c$ est traitée par
+l'algorithme ci-dessous, indépendamment des autres.
+
+\begin{quote}\ttfamily\small
+\textbf{Entrée} : dataset $\{(x_i,y_i)\}$, $n$ features, $N$ états, $M$
+clauses, $K$ features gelées/clause, $total$ tirages/clause, $S,a$.\\[4pt]
+$w_i \gets 1/|\text{train}|$ pour tout $i$\\[2pt]
+\textbf{pour} $m = 1$ à $M$ :\\
+\hspace*{1.5em}tirer $F\subseteq\{1,\ldots,n\}$, $|F|=K$, uniformément (shuffle)\\
+\hspace*{1.5em}tirer $v\in\{0,1\}^K$ uniformément (pile-ou-face indépendant/feature)\\
+\hspace*{1.5em}créer une clause $C_m$ conditionnée sur $(F,v)$ ; geler ces $K$ littéraux\\
+\hspace*{1.5em}$S_m \gets \{i : (x_i)_F = v\}$\\
+\hspace*{1.5em}\textbf{si} $S_m=\emptyset$ : $\alpha_m \gets 0$ ; \textbf{continuer}\\
+\hspace*{1.5em}\textbf{pour} $t = 1$ à $total$ :\\
+\hspace*{3em}tirer $i\in S_m$ selon $Q_m$ (50/50 classe, puis $\propto w_i$ dans la classe)\\
+\hspace*{3em}mettre à jour $C_m$ avec $(x_i,\mathbf 1[y_i{=}c])$ (règle à 4 cas)\\
+\hspace*{1.5em}\textbf{si} $C_m$ vide (aucun littéral inclus) : $\alpha_m \gets 0$ ; \textbf{continuer}
+\hspace*{1em}(pas de mise à jour des poids)\\
+\hspace*{1.5em}$\mathrm{err}_m \gets \sum_{i\in S_m} w_i\mathbf 1[C_m(x_i)\ne\mathbf 1[y_i{=}c]] \big/ \sum_{i\in S_m} w_i$ \hspace*{0.5em}(sous $D_m$)\\
+\hspace*{1.5em}$\mathrm{err}_m \gets \mathrm{clip}(\mathrm{err}_m,\epsilon,1-\epsilon)$\\
+\hspace*{1.5em}$\alpha_m \gets \tfrac12\ln\bigl((1-\mathrm{err}_m)/\mathrm{err}_m\bigr)$\\
+\hspace*{1.5em}\textbf{pour} $i \in S_m$ : $w_i \gets w_i \cdot \exp(\pm\alpha_m)$ (signe $+$ si erreur, $-$ sinon)\\
+\hspace*{1.5em}renormaliser $w$ sur tout le dataset\\[4pt]
+\textbf{retourner} $(C_1,\ldots,C_M)$, $(\alpha_1,\ldots,\alpha_M)$
+\end{quote}
+
+\textbf{Prédiction.} Pour $x$ et chaque classe $c$ :
+\[
+  \mathrm{score}_c(x) = \sum_{m=1}^M \alpha_{c,m}\cdot\bigl(2\,C_{c,m}(x)-1\bigr)\cdot\mathbf 1\bigl[(x)_{F_{c,m}}=v_{c,m}\bigr]\cdot\mathbf 1[C_{c,m}\text{ non vide}],
+\]
+puis $\hat y = \arg\max_c \mathrm{score}_c(x)$ (clause ignorée si son gate n'est
+pas satisfait par $x$ ou si elle est vide).
+
+
+
+\section*{Validation empirique}
+
+Comparaison de notre modèle à la Tsetlin Machine officielle (\texttt{pyTsetlinMachine},
+configurations publiées) et à cinq baselines classiques (\texttt{scikit-learn},
+hyperparamètres par défaut). Tous les modèles sont évalués sur les mêmes
+fichiers de données et, quand un remélange est nécessaire, la même seed par
+run ($20000+\text{run}$). Écart-type rapporté : $\sqrt{\frac1R\sum_r(\mathrm{acc}_r-\bar{\mathrm{acc}})^2}$
+(écart-type empirique de population, $1/R$, pas l'estimateur non biaisé
+$1/(R{-}1)$). \textbf{Budgets non égalisés} entre notre modèle et la TM
+(nombre de clauses différent par dataset, cf.\ ci-dessous) : ces comparaisons
+ne sont donc pas encore à budget de calcul égal. PCL (AAAI-25, related work
+le plus proche) n'est pas inclus systématiquement : dans nos tests, PCL
+s'effondre sur XOR bruité avec ses hyperparamètres publiés (toutes les
+clauses restent vides) ; il reste pertinent là où il fonctionne (Iris,
+$\approx82\%$ observé séparément).
+
+\subsection*{XOR}
+Fichiers fixes (\texttt{NoisyXORTrainingData.txt}/\texttt{TestData.txt},
+5000/5000), aucun remélange. Notre modèle : $M{=}200$, $K{=}1$, $S{=}1.0$,
+$a{=}0.35$, $N{=}50$, $total{=}5000$. TM : 20 clauses, $T{=}15$, $s{=}3.9$,
+200 epochs. 20 runs partout.
+\begin{center}
+\begin{tabular}{lc}
+\toprule
+Modèle & Précision \\
+\midrule
+Notre modèle & $\mathbf{100\%\pm0\%}$ \\
+Tsetlin Machine (officielle) & $97.40\%\pm2.23\%$ \\
+SVM & $98.12\%\pm0\%$ \\
+MLP & $76.72\%\pm1.97\%$ \\
+Random Forest & $66.52\%\pm0.30\%$ \\
+Régression logistique & $48.94\%\pm0\%$ \\
+Naive Bayes & $49.12\%\pm0\%$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection*{Iris}
+Fichier unique (\texttt{BinaryIrisData.txt}, 149 exemples), remélangé 80/20 à
+chaque run. Notre modèle : $M{=}1500$, $K{=}2$, $S{=}1.0$, $a{=}0.3$,
+$N{=}100$, $total{=}20000$. TM : 300 clauses, $T{=}10$, $s{=}3.0$, 500 epochs.
+20 runs partout.
+\begin{center}
+\begin{tabular}{lc}
+\toprule
+Modèle & Précision \\
+\midrule
+Notre modèle & $\mathbf{95.5\%\pm4.25\%}$ \\
+Random Forest & $95.33\%\pm3.86\%$ \\
+MLP & $94.50\%\pm3.38\%$ \\
+Tsetlin Machine (officielle) & $93.50\%\pm4.28\%$ \\
+SVM & $92.67\%\pm4.03\%$ \\
+Régression logistique & $92.50\%\pm4.70\%$ \\
+Naive Bayes & $90.67\%\pm4.29\%$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+Notre modèle et Random Forest sont dans la marge de bruit l'un de l'autre.
+
+\subsection*{Digits}
+Fichiers fixes (\texttt{BinaryDigitsTrainingData192.txt}/\texttt{TestData192.txt},
+1437/360), aucun remélange. Notre modèle : $M{=}2000$, $K{=}2$, $S{=}0.05$,
+$a{=}1.0$, $N{=}100$, $total{=}20000$. TM : 1000 clauses, $T{=}10$, $s{=}3.0$,
+300 epochs. 10 runs partout.
+\begin{center}
+\begin{tabular}{lc}
+\toprule
+Modèle & Précision \\
+\midrule
+Notre modèle & $\mathbf{97.19\%\pm0.40\%}$ \\
+SVM & $97.50\%\pm0\%$ \\
+Random Forest & $97.31\%\pm0.31\%$ \\
+MLP & $97.17\%\pm0.41\%$ \\
+Régression logistique & $96.11\%\pm0\%$ \\
+Tsetlin Machine (officielle) & $93.69\%\pm0.76\%$ \\
+Naive Bayes & $91.39\%\pm0\%$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection*{MNIST}
+Fichiers fixes (\texttt{MNISTTraining.txt}/\texttt{Test.txt}, 60000/10000),
+aucun remélange. Notre modèle : $M{=}16000$, $K{=}2$, $S{=}1.0$, $a{=}0.3$,
+$N{=}100$, $total{=}20000$. TM : 4000 clauses/classe, $T{=}50$, $s{=}10.0$,
+20 epochs.
+\begin{center}
+\begin{tabular}{lc}
+\toprule
+Modèle & Précision \\
+\midrule
+SVM & $\mathbf{97.71\%\pm0\%}$ \\
+Random Forest & $97.07\%\pm0.06\%$ \\
+MLP & $96.90\%\pm1.03\%$ \\
+Tsetlin Machine (officielle, 4000 clauses/classe) & $96.62\%\pm0.07\%$ (3 runs) \\
+Notre modèle ($M{=}16000$/classe) & $95.85\%$ (1 run) \\
+Régression logistique & $91.89\%\pm0\%$ \\
+Notre modèle ($M{=}4000$/classe, budget égal TM) & $93.56\%$ (1 run) \\
+Naive Bayes & $84.23\%\pm0\%$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+
+\end{document}

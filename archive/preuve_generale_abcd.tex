@@ -1,0 +1,447 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[top=2.5cm,bottom=2.5cm,left=2.8cm,right=2.8cm]{geometry}
+\usepackage{parskip}
+\usepackage{booktabs}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\hypersetup{colorlinks=true, linkcolor=blue!60!black}
+
+\newtheorem{theorem}{Théorème}[section]
+\newtheorem{lemma}[theorem]{Lemme}
+\newtheorem{corollary}[theorem]{Corollaire}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{definition}[theorem]{Définition}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remarque}
+\newtheorem{hypothese}[theorem]{Hypothèse}
+
+\newcommand{\Inc}{\ensuremath{\mathrm{Inc}}}
+\newcommand{\Exc}{\ensuremath{\mathrm{Exc}}}
+\newcommand{\vbar}{\bar{v}}
+
+\begin{document}
+
+\begin{center}
+{\LARGE\bfseries Généralisation à quatre paramètres libres $(a,b,c,d)$}\\[4pt]
+{\large Cas sans bruit -- adaptation des lemmes et théorèmes du papier principal}
+\end{center}
+\vspace{0.5em}
+\hrule
+\vspace{1.5em}
+
+Ce document reprend, un par un, les résultats déjà établis  pour la règle à deux paramètres $(S,a)$, et les
+adapte à la règle généralisée à quatre paramètres libres $(a,b,c,d)$. On reste dans le cas \emph{sans bruit} ($Y=C_{\mathrm{true}}(X)$
+déterministe) ; le cas bruité est laissé pour une étape ultérieure.
+
+\section{Notations et règle généralisée}
+
+Le cadre est identique à celui du papier principal : $(X_t,Y_t)_{t\ge1}$
+i.i.d.\ de loi jointe $P(X,Y)$ \emph{arbitraire} (pas d'hypothèse
+d'indépendance ni d'uniformité sur $X$), $X=(X_1,\ldots,X_n)\in\{0,1\}^n$,
+$Y\in\{0,1\}$. Pour chaque variable $X_i$, deux automates à $2N$ états
+$v_i,\vbar_i$ gouvernent respectivement le littéral $x_i$ et sa négation
+$\neg x_i$, avec la même convention $\mathrm{Include}(s)=\mathbf1[s>N]$ et les
+mêmes bornes réfléchissantes que dans le papier principal.
+
+\begin{definition}[Règle à quatre cas généralisée]\label{def:regle}
+Avec $a,b,c,d\in(0,1]$ :
+\begin{center}
+\begin{tabular}{cccc}
+\toprule
+$x_i$ & $y$ & Action sur $v_i$ & Action sur $\vbar_i$ \\
+\midrule
+0 & 0 & vers $\Inc$ avec proba.\ $a$ & vers $\Exc$ avec proba.\ $c$ \\
+0 & 1 & vers $\Exc$ avec proba.\ $b$ & vers $\Inc$ avec proba.\ $d$ \\
+1 & 0 & vers $\Exc$ avec proba.\ $c$ & vers $\Inc$ avec proba.\ $a$ \\
+1 & 1 & vers $\Inc$ avec proba.\ $d$ & vers $\Exc$ avec proba.\ $b$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+\end{definition}
+
+
+\section{Dynamique d'un automate isolé}
+
+\begin{proposition}[Probabilités de transition intérieures]\label{prop:pv}
+Pour toute loi $P$, en notant $A=P(X_i{=}0,Y{=}0)$, $B=P(X_i{=}1,Y{=}0)$,
+$C=P(X_i{=}0,Y{=}1)$, $D=P(X_i{=}1,Y{=}1)$ :
+\begin{align*}
+  p_i^+ &= aA+dD, & p_i^- &= bC+cB; \\
+  \bar p_i^+ &= dC+aB, & \bar p_i^- &= cA+bD.
+\end{align*}
+\end{proposition}
+
+\begin{proof}
+Somme directe des contributions de la Définition~\ref{def:regle} sur les
+quatre cases $(x_i,y)$, pondérées par leur probabilité : $v_i$ est poussé
+vers $\Inc$ avec probabilité $a$ sur l'évènement $(X_i{=}0,Y{=}0)$ (probabilité
+$A$) et avec probabilité $d$ sur $(X_i{=}1,Y{=}1)$ (probabilité $D$), d'où
+$p_i^+=aA+dD$ ; de même pour les trois autres lignes.
+\end{proof}
+
+
+
+\section{Loi stationnaire exacte}
+
+\begin{theorem}[Inchangé]\label{thm:stat-gen}
+Le Théorème~1 du papier principal (loi stationnaire exacte, $\pi(\Inc)=\rho^N/(1+\rho^N)$
+avec $\rho=p^+/p^-$) s'applique \textbf{sans aucune modification}, car sa
+preuve ne fait intervenir $p^+,p^-$ que comme deux nombres constants de
+$(0,1)$ définissant une chaîne de naissance-mort réfléchie -- peu importe
+comment ils sont calculés. Il suffit que $p_i^+,p_i^->0$ (resp.\
+$\bar p_i^+,\bar p_i^->0$), ce qui est garanti dès que $a,b,c,d>0$ et que $A,B,C,D$
+ne sont pas toutes nulles du côté concerné.
+\end{theorem}
+
+\section{Lemme de non-contradiction généralisé}
+
+C'est ici que la généralisation demande un vrai travail : le Lemme~6 du
+papier principal (« $\Delta+\bar\Delta\le0$ pour toute loi ») reposait sur une
+simplification algébrique spécifique à la structure $a=c=S,d=0$. On la
+refait pour $(a,b,c,d)$ quelconques.
+
+\begin{lemma}[Somme des dérives]\label{lem:sum-gen}
+Avec $\Delta=p^+-p^-$, $\bar\Delta=\bar p^+-\bar p^-$ (Proposition~\ref{prop:pv}) :
+\[
+  \Delta+\bar\Delta = (a-c)\,P(Y{=}0) + (d-b)\,P(Y{=}1).
+\]
+\end{lemma}
+
+\begin{proof}
+\begin{align*}
+\Delta+\bar\Delta &= (aA+dD-bC-cB) + (dC+aB-cA-bD) \\
+&= A(a-c) + B(a-c) + C(d-b) + D(d-b) \\
+&= (a-c)(A+B) + (d-b)(C+D)
+= (a-c)P(Y{=}0)+(d-b)P(Y{=}1),
+\end{align*}
+puisque $A+B=P(X_i{=}0,Y{=}0)+P(X_i{=}1,Y{=}0)=P(Y{=}0)$ et de même $C+D=P(Y{=}1)$.
+\end{proof}
+
+\begin{remark}
+Pour $a=c$ et $d=0<b$ (règle originale), on retrouve
+$\Delta+\bar\Delta=-b\,P(Y{=}1)\le0$, exactement le Lemme~6 du papier
+principal (avec $b=a_{\mathrm{ancien}}$).
+\end{remark}
+
+\begin{hypothese}[H]\label{hyp:H}
+$a\le c$ et $d\le b$.
+\end{hypothese}
+
+\begin{corollary}[Non-contradiction sous (H)]\label{cor:excl-gen}
+Sous l'Hypothèse~\ref{hyp:H}, pour toute loi $P(X,Y)$ :
+\[
+  \Delta+\bar\Delta\le0,
+\]
+avec égalité si et seulement si $\bigl[(a{=}c)\text{ ou }P(Y{=}0){=}0\bigr]$ et
+$\bigl[(d{=}b)\text{ ou }P(Y{=}1){=}0\bigr]$ simultanément. En particulier,
+si $P(Y{=}1)>0$ et $(a<c$ ou $d<b)$, l'inégalité est stricte, donc
+$\Delta>0$ et $\bar\Delta>0$ ne peuvent avoir lieu simultanément : si
+$\Delta>0$ alors $\bar\Delta\le-\Delta<0$.
+\end{corollary}
+
+\begin{proof}
+$(a-c)\le0$ et $(d-b)\le0$ par (H), et $P(Y{=}0),P(Y{=}1)\ge0$, donc chaque
+terme de la somme du Lemme~\ref{lem:sum-gen} est $\le0$. Le cas d'égalité et
+la conclusion sur l'exclusion mutuelle suivent comme dans le Corollaire~7 du
+papier principal.
+\end{proof}
+
+\begin{remark}
+L'Hypothèse (H) est \emph{nécessaire} pour cette conclusion universelle
+(valable pour toute loi $P(X,Y)$) : si $a>c$, en prenant une loi dégénérée
+avec $P(Y{=}1)=0$, $\Delta+\bar\Delta=(a-c)>0$. Sans (H), l'exclusion mutuelle
+des régimes n'est donc plus garantie en toute généralité -- elle peut encore
+tenir pour une loi $P(X,Y)$ \emph{particulière}, mais pas pour toutes.
+\end{remark}
+
+\section{Théorème des 3 régimes généralisé}
+
+\begin{theorem}[Généralisation du Théorème~6]\label{thm:sel-gen}
+Sous l'Hypothèse~\ref{hyp:H}, supposons $\Delta\ne0$ et $\bar\Delta\ne0$.
+Notons $\gamma=\max(\rho,1/\rho)>1$, $\bar\gamma=\max(\bar\rho,1/\bar\rho)>1$.
+Alors exactement un des trois régimes suivants a lieu :
+\begin{itemize}
+  \item $\Delta>0$ (donc $\bar\Delta<0$) $\iff aA+dD>bC+cB$ :
+  \[
+    \lim_{N\to\infty}\;\limsup_{t\to\infty}\;\mathbb P\bigl((v_t,\vbar_t)\ne(\Inc,\Exc)\bigr) = 0.
+  \]
+  \item $\bar\Delta>0$ (donc $\Delta<0$) $\iff dC+aB>cA+bD$ :
+  \[
+    \lim_{N\to\infty}\;\limsup_{t\to\infty}\;\mathbb P\bigl((v_t,\vbar_t)\ne(\Exc,\Inc)\bigr) = 0.
+  \]
+  \item $\Delta<0$ et $\bar\Delta<0$ :
+  \[
+    \lim_{N\to\infty}\;\limsup_{t\to\infty}\;\mathbb P\bigl((v_t,\vbar_t)\ne(\Exc,\Exc)\bigr) = 0.
+  \]
+\end{itemize}
+\end{theorem}
+
+\begin{proof}
+Identique à celle du Théorème~6 du papier principal, en remplaçant
+$\Delta,\bar\Delta$ par leurs expressions générales (Proposition~\ref{prop:pv})
+et en invoquant le Corollaire~\ref{cor:excl-gen} (au lieu du Corollaire~7
+original) pour l'exclusion mutuelle des deux premiers régimes. Le reste de
+l'argument (passage du marginal au joint par union bound, sans hypothèse
+d'indépendance entre $v_t$ et $\vbar_t$, puis $N\to\infty$) ne fait
+intervenir ni $S$ ni $a$ explicitement et transfère donc sans changement.
+\end{proof}
+
+\begin{remark}
+Sans l'Hypothèse~\ref{hyp:H}, ce théorème n'est plus garanti : on pourrait
+avoir $\Delta>0$ et $\bar\Delta>0$ simultanément pour certaines lois
+$P(X,Y)$, ce qui casserait l'exclusion mutuelle des 3 régimes et donc la
+preuve telle quelle (il faudrait alors une preuve au cas par cas, loi par
+loi, ce qui est hors du cadre d'un théorème général).
+\end{remark}
+
+\section{Concentration structurelle multi-features}
+
+\begin{theorem}[Inchangé]\label{thm:multi-gen}
+Le Théorème~7 du papier principal s'applique \textbf{sans aucune
+modification de preuve} : pour chacun des $2d$ automates d'une clause à $n$
+features ($K$ fixées, $d=n-K$ libres), en préférence stationnaire non
+dégénérée, avec $r_j=p_j^+/p_j^-$ (calculé via la Proposition~\ref{prop:pv},
+peu importe la règle sous-jacente) et $\gamma_j=\max(r_j,1/r_j)$ :
+\[
+  \limsup_{t\to\infty}\mathbb P(C_t\ne C^\star) \le \sum_{j=1}^{2d}\frac1{1+\gamma_j^N}
+  \le 2(n-K)\,\gamma_{\min}^{-N} \xrightarrow[N\to\infty]{} 0.
+\]
+\end{theorem}
+
+\begin{proof}
+La preuve du papier principal (union bound sur les évènements « automate $j$
+du mauvais côté », chacun de probabilité exactement $1/(1+\gamma_j^N)$ par le
+Théorème~\ref{thm:stat-gen}) ne dépend que de l'existence des ratios $r_j$,
+pas de leur formule précise. Elle s'applique donc telle quelle, avec les
+$r_j$ recalculés via $(a,b,c,d)$.
+\end{proof}
+
+\section{Identification sous dépendance de features arbitraire}
+
+C'est l'adaptation la plus substantielle. On reprend la Définition~10 du
+papier principal (cible $C_{\mathrm{true}}=\bigwedge_{j\in J_+}x_j\wedge
+\bigwedge_{j\in J_-}(1-x_j)$, $Y=Y^\star=C_{\mathrm{true}}(X)$ p.s., loi de
+$X$ quelconque) et les notations $A_j,B_j,C_j,D_j$ identiques.
+
+\begin{theorem}[Identification généralisée]\label{thm:identif-gen}
+Sous l'Hypothèse~\ref{hyp:H}, avec $C_{\mathrm{true}},Y^\star$ comme dans la
+Définition~10 du papier principal :
+\begin{itemize}
+  \item pour $j\in J_+$ : si $aA_j+dD_j>cB_j$, alors $\Delta_j>0$ et $\bar\Delta_j<0$ ;
+  \item pour $j\in J_-$ : si $aB_j+dC_j>cA_j$, alors $\bar\Delta_j>0$ et $\Delta_j<0$ ;
+  \item pour $k\notin J_+\cup J_-$ : si $aA_k+dD_k<bC_k+cB_k$ \emph{et}
+  $aB_k+dC_k<cA_k+bD_k$, alors $\Delta_k<0$ et $\bar\Delta_k<0$.
+\end{itemize}
+Si ces conditions sont vérifiées pour tous les littéraux concernés, alors
+$C^\star=C_{\mathrm{true}}$.
+\end{theorem}
+
+\begin{proof}
+Pour $j\in J_+$ : $Y{=}1\Rightarrow X_j{=}1$ (fait purement logique,
+indépendant de la loi de $X$ et de la règle), donc $C_j=P(X_j{=}0,Y{=}1)=0$.
+Par la Proposition~\ref{prop:pv} : $\Delta_j=aA_j+dD_j-bC_j-cB_j=aA_j+dD_j-cB_j$
+(le terme en $b$ s'annule car $C_j=0$), positif ssi $aA_j+dD_j>cB_j$. Par le
+Corollaire~\ref{cor:excl-gen} (Hypothèse~\ref{hyp:H}), $\Delta_j>0\Rightarrow\bar\Delta_j<0$.
+
+Pour $j\in J_-$ : symétriquement, $Y{=}1\Rightarrow X_j{=}0$ donne
+$D_j=P(X_j{=}1,Y{=}1)=0$, d'où $\bar\Delta_j=dC_j+aB_j-cA_j-bD_j=aB_j+dC_j-cA_j$
+(le terme en $b$ s'annule car $D_j=0$), positif ssi $aB_j+dC_j>cA_j$, et
+alors $\Delta_j<0$ par le Corollaire~\ref{cor:excl-gen}.
+
+Pour $k$ non pertinent : $A_k,B_k,C_k,D_k$ sont quelconques (aucune
+simplification logique possible), donc on requiert directement
+$\Delta_k=aA_k+dD_k-bC_k-cB_k<0$ et $\bar\Delta_k=dC_k+aB_k-cA_k-bD_k<0$, ce
+qui donne les deux inégalités annoncées.
+\end{proof}
+
+\begin{remark}
+Pour $a=c=S,b=a_{\mathrm{ancien}},d=0$, on retrouve les 3 conditions du
+Théorème~10 du papier principal : $j\in J_+$ devient $SA_j>SB_j\iff A_j>B_j$ ;
+$j\in J_-$ devient $SB_j>SA_j\iff B_j>A_j$ ; $k$ non pertinent devient
+$SA_k<a_{\mathrm{ancien}}C_k+SB_k$ et $SB_k<SA_k+a_{\mathrm{ancien}}D_k$, soit
+$A_k-B_k<\tfrac{a_{\mathrm{ancien}}}{S}C_k$ et $A_k-B_k>-\tfrac{a_{\mathrm{ancien}}}{S}D_k$
+-- exactement l'encadrement du papier principal.
+\end{remark}
+
+\section{Corollaire : cas d'une conjonction pure à entrées uniformes}
+
+À titre d'illustration et de vérification, on spécialise le
+Théorème~\ref{thm:identif-gen} au cas où $X$ est uniforme sur $\{0,1\}^n$ et
+indépendant coordonnée par coordonnée (le cadre d'expérience de PCL), avec
+$C_{\mathrm{true}}$ de taille $m=|J_+|+|J_-|$.
+
+\begin{proposition}\label{prop:uniforme}
+Sous ces hypothèses, pour $j\in J_+$ : $A_j=\tfrac12$,
+$B_j=\tfrac12(1-2^{-(m-1)})$, $C_j=0$, $D_j=\tfrac12\cdot2^{-(m-1)}$ ; pour
+$j\in J_-$ (symétrie $x\to1-x$) : $A_j=\tfrac12(1-2^{-(m-1)})$, $B_j=\tfrac12$,
+$C_j=\tfrac12\cdot2^{-(m-1)}$, $D_j=0$ ; pour $k$ non pertinent :
+$A_k=B_k=\tfrac12(1-2^{-m})$, $C_k=D_k=\tfrac12\cdot2^{-m}$. En substituant
+dans le Théorème~\ref{thm:identif-gen}, les rôles $J_+$ et $J_-$ donnent, par
+cette même symétrie, \textbf{la même condition} (vérifié : $aA_j+dD_j-cB_j$
+pour $J_+$ et $aB_j+dC_j-cA_j$ pour $J_-$ sont algébriquement identiques une
+fois les valeurs ci-dessus substituées) :
+\[
+  \text{($J_+$ et $J_-$)}\qquad a+(c+d)\,2^{1-m}>c,
+  \qquad\qquad
+  \text{($k$ non pertinent)}\qquad a-c<(a+b-c-d)\,2^{-m}.
+\]
+\end{proposition}
+
+\begin{corollary}\label{cor:pour-tout-m}
+Si $a=c$ et $0\le d<b$, les 2 conditions de la Proposition~\ref{prop:uniforme}
+sont satisfaites pour \textbf{tout} $m\ge1$ (pas seulement asymptotiquement).
+Réciproquement, si l'on veut qu'un unique choix de $(a,b,c,d)$ satisfasse ces
+2 conditions pour $m$ arbitrairement grand, alors nécessairement $a=c$ (la
+condition $J_+/J_-$ force $a\ge c$ quand $m\to\infty$, la condition « $k$ non
+pertinent » force $a\le c$).
+\end{corollary}
+
+\begin{proof}
+Substitution directe ($a=c$ annule le terme en $2^{1-m}$ dans la première
+condition, qui devient $(c+d)2^{1-m}>0$, vraie ; la seconde devient
+$0<(b-d)2^{-m}$, vraie ssi $b>d$). Pour la réciproque : si $a<c$ strictement,
+la condition $J_+/J_-$, $a+(c+d)2^{1-m}>c$, devient fausse dès que $m$ est
+assez grand pour que $(c+d)2^{1-m}<c-a$ ; si au contraire $a>c$, c'est la
+condition « $k$ non pertinent », $a-c<(a+b-c-d)2^{-m}$, qui finit par échouer
+dès que $2^{-m}<(a-c)/(a+b-c-d)$ (pour $a+b-c-d>0$ ; sinon elle échoue
+immédiatement). Dans les deux cas, seul $a=c$ survit pour $m$ arbitrairement
+grand.
+\end{proof}
+
+\begin{remark}
+Cette correspondance $J_+\leftrightarrow J_-$ (même formule) n'est pas une
+coïncidence : c'est précisément la même symétrie $x\to1-x$ qui relie $v_i$ et
+$\vbar_i$ dans la Définition~\ref{def:regle}. Le déséquilibre attendu
+($J_+/J_-$ contre « non pertinent ») vient d'ailleurs : les littéraux
+pertinents ont $C_j=0$ ou $D_j=0$ exactement (fait logique), alors que les
+littéraux non pertinents ont $C_k,D_k>0$ -- c'est cette différence structurelle,
+et non une différence entre $J_+$ et $J_-$, qui produit les deux formules
+distinctes ci-dessus.
+\end{remark}
+
+\begin{remark}
+Ce corollaire confirme, par un chemin indépendant, l'Hypothèse~\ref{hyp:H} :
+la condition $a=c,\,d<b$ trouvée ici pour que la règle apprenne
+n'importe quelle taille de conjonction est un cas particulier de (H)
+($a\le c$ et $d\le b$, avec $a=c$ à l'égalité). Les deux approches -- le
+Lemme~\ref{lem:sum-gen} (structurel, valable pour toute loi) et ce corollaire
+(spécifique à la conjonction pure uniforme) -- convergent vers la même
+conclusion.
+\end{remark}
+
+\section{Robustesse à un bruit de label généralisée}
+
+On généralise maintenant le Théorème~12 du papier principal (robustesse à un
+bruit de label dépendant de la distribution). Bonne nouvelle : sa preuve est
+déjà écrite d'une façon qui isole complètement la règle $(S,a)$ dans une
+seule quantité (le saut ponctuel maximal d'une fonction bornée) -- il suffit
+de recalculer cette quantité pour $(a,b,c,d)$, le reste de la preuve (étapes
+2, 4, 5) ne change pas un mot.
+
+\begin{proposition}[Réécriture de $\Delta_j$ comme espérance]\label{prop:c-func}
+Avec $c,\bar c:\{0,1\}^2\to\mathbb R$ définies par
+\[
+  c(0,0)=a,\quad c(0,1)=-b,\quad c(1,0)=-c,\quad c(1,1)=d, \qquad
+  \bar c(0,0)=-c,\quad \bar c(0,1)=d,\quad \bar c(1,0)=a,\quad \bar c(1,1)=-b,
+\]
+on a $\Delta_j=\mathbb E[c(X_j,Y)]$ et $\bar\Delta_j=\mathbb E[\bar c(X_j,Y)]$
+pour toute loi $P(X,Y)$ (comparer à la Proposition~\ref{prop:pv} : $c,\bar c$
+sont exactement les valeurs signées de la Définition~\ref{def:regle}).
+\end{proposition}
+
+\begin{lemma}[Saut ponctuel maximal]\label{lem:jump-gen}
+Pour $X_j$ fixé, l'écart entre les deux valeurs possibles de $c(X_j,\cdot)$
+(resp.\ $\bar c(X_j,\cdot)$) vaut $a+b$ en $X_j=0$ et $c+d$ en $X_j=1$ pour
+$c$ (l'inverse pour $\bar c$). Dans tous les cas :
+\[
+  |c(X_j,Y)-c(X_j,Y')|\le M, \qquad |\bar c(X_j,Y)-\bar c(X_j,Y')|\le M,
+  \qquad M:=\max(a+b,\ c+d),
+\]
+pour toutes valeurs $Y\ne Y'$ dans $\{0,1\}$ et toute valeur de $X_j$.
+\end{lemma}
+
+\begin{proof}
+$|c(0,0)-c(0,1)|=|a-(-b)|=a+b$ ; $|c(1,0)-c(1,1)|=|-c-d|=c+d$. Le maximum
+sur les deux valeurs de $X_j$ est $M=\max(a+b,c+d)$. Calcul identique pour
+$\bar c$ (mêmes deux valeurs $a+b,c+d$, juste échangées entre $X_j=0$ et
+$X_j=1$).
+\end{proof}
+
+\begin{remark}
+Pour $a=c=S,b=a_{\mathrm{ancien}},d=0$ : $M=\max(S+a_{\mathrm{ancien}},S)=S+a_{\mathrm{ancien}}$
+(puisque $a_{\mathrm{ancien}}>0$), exactement le $S+a$ du Théorème~12 du
+papier principal. Vérifié aussi numériquement.
+\end{remark}
+
+\begin{theorem}[Robustesse au bruit, généralisée]\label{thm:bruit-gen}
+Sous l'Hypothèse~\ref{hyp:H}, reprenons les notations et hypothèses du
+Théorème~\ref{thm:identif-gen} et notons
+$\Delta_j^\star,\bar\Delta_j^\star,\Delta_k^\star,\bar\Delta_k^\star$ les
+dérives calculées avec le label sans bruit $Y^\star$. Soit $\mu$ le minimum
+de tous les membres de gauche des inégalités strictes du
+Théorème~\ref{thm:identif-gen} (défini exactement comme dans le Théorème~12
+du papier principal), et supposons $\mu>0$. Soit $Y$ un label tel que
+$\eta:=P(Y\ne Y^\star)>0$, sans aucune autre hypothèse sur la loi du bruit.
+Si
+\[
+  \boxed{\eta < \frac{\mu}{M}, \qquad M=\max(a+b,\,c+d),}
+\]
+alors toutes les inégalités du Théorème~\ref{thm:identif-gen} restent
+satisfaites avec $Y$ à la place de $Y^\star$, et $C^\star=C_{\mathrm{true}}$.
+\end{theorem}
+
+\begin{proof}
+Identique aux étapes 1--5 de la preuve du Théorème~12 du papier principal,
+en remplaçant $c,\bar c$ par leurs versions de la Proposition~\ref{prop:c-func}
+et la borne $S+a$ par $M$ (Lemme~\ref{lem:jump-gen}) :
+\emph{(1)} $\Delta_j=\mathbb E[c(X_j,Y)]$ ;
+\emph{(2)} couplage naturel de $Y,Y^\star$, $\{Y\ne Y^\star\}$ de probabilité $\eta$ ;
+\emph{(3)} $|c(X_j,Y)-c(X_j,Y^\star)|\le M$ ponctuellement (Lemme~\ref{lem:jump-gen}) ;
+\emph{(4)} $|\Delta_j-\Delta_j^\star|\le M\eta$ par passage à l'espérance (même
+argument pour $\bar\Delta_j,\Delta_k,\bar\Delta_k$) ;
+\emph{(5)} si $M\eta<\mu$, chaque dérive reste à moins de $\mu$ de sa valeur
+sans bruit, donc garde son signe requis par le Théorème~\ref{thm:identif-gen}.
+Aucune de ces cinq étapes ne fait intervenir la valeur précise de $S,a$ ou
+$a,b,c,d$ autrement que par la borne $M$ -- la généralisation ne demande donc
+que ce recalcul de $M$, rien d'autre.
+\end{proof}
+
+\begin{remark}
+C'est bien la simplification demandée : on n'a pas eu à retoucher le
+mécanisme de la preuve (couplage, saut ponctuel, passage à l'espérance,
+préservation des signes), seulement une constante. Le seuil généralisé
+$\eta<\mu/\max(a+b,c+d)$ redonne exactement $\eta<\mu/(S+a)$ pour l'ancienne
+règle.
+\end{remark}
+
+\section{Synthèse}
+
+\begin{center}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{lll}
+\toprule
+Résultat & Statut & Condition requise \\
+\midrule
+Loi stationnaire (Th.~1) & inchangé & $a,b,c,d>0$ \\
+Non-contradiction (Lemme~6) & redémontré & Hypothèse (H) : $a\le c,\ d\le b$ \\
+3 régimes (Th.~6) & redémontré & Hypothèse (H) \\
+Concentration multi-bit (Th.~7) & inchangé & non-dégénérescence ($r_j\ne1$) \\
+Identification (Th.~10) & redémontré & Hypothèse (H) \\
+Robustesse au bruit (Th.~12) & redémontré & Hypothèse (H), $\mu>0$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{Ce qui reste ouvert} : la composition multi-round du boosting (hors
+sujet, mise de côté avec le reste du boosting) ; et une discussion de ce que
+permet concrètement le degré de liberté supplémentaire $d$ (autorisé jusqu'à
+$d<b$) au-delà du cas $d=0$ déjà couvert par l'ancienne règle -- en
+particulier si un choix $d>0$ améliore la vitesse de convergence ou la
+robustesse au bruit (en réduisant $M=\max(a+b,c+d)$ à $\mu$ fixé), à vérifier
+empiriquement.
+
+\end{document}

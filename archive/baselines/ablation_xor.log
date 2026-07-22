@@ -1,0 +1,6 @@
+XOR bruite, M=200, K=1, total=5000, S=1.0, a=0.35, N=50, 10 runs
+
+A. regle seule (sans conditions, sans boosting)    : 48.86% +/- 0.00%   (9.1s / 10 runs)
+B. +conditions seules (sans boosting)              : 100.00% +/- 0.00%   (16.4s / 10 runs)
+C. +boosting seul (sans conditions)                : 48.86% +/- 0.00%   (7.5s / 10 runs)
+D. modele complet (conditions+boosting)            : 100.00% +/- 0.00%   (8.5s / 10 runs)

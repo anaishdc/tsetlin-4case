@@ -7,3 +7,6 @@ data/MNISTTestOfficial10k.txt
 baselines/pyTsetlinMachine/
 baselines/dpcl-classifier/
 baselines/__pycache__/
+__pycache__/
+test_recovery_abcd
+test_recovery_abcd_N100

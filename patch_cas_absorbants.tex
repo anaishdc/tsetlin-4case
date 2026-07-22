@@ -1,0 +1,175 @@
+\documentclass[11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{geometry}
+\geometry{margin=2.5cm}
+
+\newtheorem{theorem}{Théorème}
+\newtheorem{proposition}{Proposition}
+\newtheorem{lemma}{Lemme}
+\newtheorem{corollary}{Corollaire}
+\newtheorem{definition}{Définition}
+\newtheorem{hypothesis}{Hypothèse}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remarque}
+
+\newcommand{\Inc}{\ensuremath{\mathrm{Inc}}}
+\newcommand{\Exc}{\ensuremath{\mathrm{Exc}}}
+\newcommand{\vbar}{\bar{v}}
+
+\begin{document}
+
+\begin{center}
+{\LARGE\bfseries Correctif : cas absorbants dans les Théorèmes 2 et 3}\\[4pt]
+{\large Réponse au point de rigueur soulevé par la relecture}
+\end{center}
+\vspace{1em}
+
+Ce document corrige un trou identifié dans \texttt{preuve\_complete.tex} :
+les Théorèmes 2 (trois régimes) et 3 (concentration multi-littéraux) sont
+écrits en supposant implicitement $p^+,p^->0$ (pour que $\rho=p^+/p^-$ soit
+défini), alors que le Théorème 4 (identification) produit naturellement des
+cas où $p^+=0$ ou $p^-=0$ dès qu'un $B_j$ ou $C_j$ s'annule -- par exemple
+pour $C_{\mathrm{true}}=x_1$ seul ($m=1$), où $B_1=C_1=0$. Le Corollaire 1
+(cas absorbants) couvrait déjà ce cas, mais les Théorèmes 2 et 3 ne s'y
+référaient pas explicitement. On répare ça ici, sans rien redémontrer de
+neuf : le calcul dur (le comportement absorbant) était déjà correct.
+
+\section{Rappel : le cas absorbant (inchangé)}
+
+\begin{corollary}[Cas absorbants]\label{cor:absorb}
+Si $p^-=0$ et $p^+>0$ : l'automate finit presque sûrement par rester bloqué
+en $2N$, et ce en temps fini. Si $p^+=0$ et $p^->0$ : symétrique, blocage en
+$1$. Si $p^+=p^-=0$ : l'automate ne bouge jamais, il reste à son état
+initial.
+\end{corollary}
+
+Ce corollaire est \emph{plus fort} que la convergence géométrique du
+Théorème 1 (loi stationnaire) : au lieu de $P(v_t\ne\Inc)\to0$ seulement de
+façon asymptotique, on a $P(v_t\ne\Inc)=0$ exactement à partir d'un temps
+fini (le temps d'absorption).
+
+\section{Extension de la définition de $\rho$ et $\gamma$}
+
+\begin{definition}[Convention pour les cas dégénérés]\label{def:convention}
+Pour un automate de probabilités $p^+,p^-\ge0$ non toutes deux nulles, on
+étend $\rho=p^+/p^-$ à $[0,+\infty]$ par les conventions usuelles
+$p^+/0:=+\infty$ (si $p^+>0$) et $0/p^-:=0$ (si $p^->0$), et on pose
+$\gamma=\max(\rho,1/\rho)\in[1,+\infty]$, avec $1/\infty:=0$. On convient que
+$\gamma^{-N}:=0$ dès que $\gamma=+\infty$, pour tout $N\ge1$.
+\end{definition}
+
+\begin{remark}
+Cette convention est cohérente avec le Corollaire~\ref{cor:absorb} : si
+$p^-=0,p^+>0$, alors $\rho=+\infty$ donc $\gamma=+\infty$ donc
+$\gamma^{-N}=0$ -- exactement la valeur qu'annonce le Corollaire
+(probabilité nulle, pas juste petite). Le signe de $\Delta=p^+-p^-$ n'est
+lui jamais affecté par cette extension : $\Delta$ est une différence, pas
+un rapport, il reste bien défini et distingue toujours correctement le
+régime ($\Delta>0$ ssi $p^->0$ ou $p^+>0$ avec $p^+$ dominant, sans division).
+\end{remark}
+
+\begin{remark}[Le cas doublement dégénéré]\label{rem:frozen}
+Si $p^+=p^-=0$, l'automate ne bouge jamais (troisième cas du
+Corollaire~\ref{cor:absorb}) : son état reste celui de l'initialisation, qui
+est tirée aléatoirement près de la frontière ($N$ ou $N+1$, chacun avec
+probabilité $1/2$). Dans ce cas, l'automate finit du bon côté avec
+probabilité $1/2$ exactement, indépendamment de $N$ et de $t$ -- ni le
+Théorème~\ref{thm:sel} ni le Théorème~\ref{thm:multi} ne peuvent rien
+garantir de mieux pour cet automate précis. Ce cas exige $A=D=0$ pour $v_i$
+(ou $B=C=0$ pour $\vbar_i$) simultanément avec $B=C=0$ (ou $A=D=0$), une
+double dégénérescence structurelle plus rare que le cas simple de la
+Remarque~\ref{def:convention}. On l'exclut par l'hypothèse de généricité
+suivante.
+\end{remark}
+
+\begin{hypothesis}[Généricité]\label{hyp:generic}
+Pour chaque automate ($v_i$ ou $\vbar_i$, pour chaque $i$), $p^+$ et $p^-$
+ne sont pas simultanément nuls.
+\end{hypothesis}
+
+\section{Théorème 2 corrigé (trois régimes)}
+
+\begin{theorem}[Trois régimes, version corrigée]\label{thm:sel}
+Sous l'Hypothèse~1 (non-contradiction) et l'Hypothèse~\ref{hyp:generic}
+(généricité), supposons $\Delta\ne0$ et $\bar\Delta\ne0$. Avec $\gamma,\bar\gamma$
+étendus selon la Définition~\ref{def:convention} (éventuellement $+\infty$),
+exactement un des trois cas suivants a lieu :
+\begin{itemize}
+\item $\Delta>0$ (donc $\bar\Delta<0$) $\iff aA+dD>bC+cB$ :
+$\lim_{N\to\infty}\limsup_{t\to\infty}P((v_t,\vbar_t)\ne(\Inc,\Exc))=0$.
+\item $\bar\Delta>0$ (donc $\Delta<0$) $\iff dC+aB>cA+bD$ :
+$\lim_{N\to\infty}\limsup_{t\to\infty}P((v_t,\vbar_t)\ne(\Exc,\Inc))=0$.
+\item $\Delta<0$ et $\bar\Delta<0$ :
+$\lim_{N\to\infty}\limsup_{t\to\infty}P((v_t,\vbar_t)\ne(\Exc,\Exc))=0$.
+\end{itemize}
+De plus, si $\gamma=+\infty$ ou $\bar\gamma=+\infty$ dans le cas concerné, la
+borne $\limsup_t P(\cdot)$ est exactement $0$ pour tout $N$ (convergence en
+temps fini via le Corollaire~\ref{cor:absorb}), pas seulement à la limite
+$N\to\infty$.
+\end{theorem}
+
+\begin{proof}
+Les équivalences de signe ($\Delta>0\iff aA+dD>bC+cB$, etc.) découlent
+directement de la Proposition sur $p^\pm,\bar p^\pm$ et ne font intervenir
+aucune division -- elles restent donc valables mot pour mot. L'exclusion
+mutuelle des trois régimes découle du Corollaire de non-contradiction, qui
+ne fait pas non plus intervenir $\rho$.
+
+Reste à établir les bornes. Deux cas se présentent pour l'automate $v$ (le
+même argument s'applique à $\vbar$) :
+\begin{itemize}
+\item \emph{Cas non dégénéré} ($p^+,p^->0$) : par le Théorème~1,
+$P(v_t\ne\Inc)\to\pi(\Exc)\le\gamma^{-N}$ quand $t\to\infty$, comme avant.
+\item \emph{Cas dégénéré} ($p^-=0$, $p^+>0$ -- exclu $p^+=p^-=0$ par
+l'Hypothèse~\ref{hyp:generic}) : par le Corollaire~\ref{cor:absorb}, $v_t$
+est bloqué en $\Inc=2N$ à partir d'un temps fini, donc $P(v_t\ne\Inc)=0$
+pour $t$ assez grand, donc $\limsup_{t\to\infty}P(v_t\ne\Inc)=0$. Ceci
+coïncide exactement avec $\gamma^{-N}=0$ sous la convention de la
+Définition~\ref{def:convention} (avec $\gamma=+\infty$ ici, puisque
+$\rho=+\infty$).
+\end{itemize}
+Dans les deux cas, $P(v_t\ne\Inc)\to$ une quantité $\le\gamma^{-N}$ (avec
+égalité à $0$ dans le cas dégénéré). Le reste de la preuve (inégalité de
+l'union sur $(v_t,\vbar_t)\ne(\Inc,\Exc)$, passage à $\limsup_t$, puis
+$N\to\infty$) est inchangé, et $\gamma^{-N}+\bar\gamma^{-N}\to0$ reste vrai
+même si l'un des deux termes est déjà identiquement nul.
+\end{proof}
+
+\section{Théorème 3 corrigé (concentration multi-littéraux)}
+
+\begin{theorem}[Concentration, version corrigée]\label{thm:multi}
+Sous l'Hypothèse~\ref{hyp:generic} (généricité) pour chacun des $2n$
+automates, on pose, pour chaque automate $j$, $\gamma_j$ selon la
+Définition~\ref{def:convention} (éventuellement $+\infty$ si $p_j^+=0$ ou
+$p_j^-=0$), et $\gamma_{\min}=\min_j\gamma_j$ (fini, car au moins un automate
+non dégénéré suffit -- si tous les automates sont dégénérés, $C_t=C^\star$
+exactement pour $t$ assez grand, la borne est triviale). Alors, sans aucune
+hypothèse d'indépendance entre les $2n$ automates :
+$$\limsup_{t\to\infty}P(C_t\ne C^\star)\le\sum_{j=1}^{2n}\frac1{1+\gamma_j^N}\le2n\,\gamma_{\min}^{-N}\xrightarrow[N\to\infty]{}0.$$
+\end{theorem}
+
+\begin{proof}
+Identique à la preuve originale : $\{C_t\ne C^\star\}\subseteq A_1\cup\dots\cup A_{2n}$
+par contraposée, puis $P(C_t\ne C^\star)\le\sum_jP(A_j)$. Pour chaque
+automate $j$, $P(A_j)\le\frac1{1+\gamma_j^N}$ -- dans le cas non dégénéré
+par le Théorème~1 comme avant ; dans le cas dégénéré, par le
+Corollaire~\ref{cor:absorb}, $P(A_j)=0$ pour $t$ assez grand, ce qui
+coïncide avec $\frac1{1+\gamma_j^N}=\frac1{1+\infty}=0$ sous la convention
+adoptée. La somme et la majoration par $2n\,\gamma_{\min}^{-N}$ sont
+inchangées, chaque terme dégénéré contribuant exactement $0$ plutôt qu'un
+terme positif à majorer.
+\end{proof}
+
+\begin{remark}
+Le Théorème 4 (identification) invoque le Théorème~\ref{thm:multi} dans sa
+conclusion -- avec cette version corrigée, cette invocation reste valide
+telle quelle, y compris dans les cas comme $C_{\mathrm{true}}=x_1$ où
+certains automates sont absorbants. Aucune autre partie de
+\texttt{preuve\_complete.tex} n'a besoin d'être modifiée : le Théorème 5
+(bruit) travaille directement avec les $\Delta_j$ (jamais avec $\rho$ ou
+$\gamma$), donc n'est pas concerné par ce trou.
+\end{remark}
+
+\end{document}
