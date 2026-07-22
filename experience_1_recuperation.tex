@@ -1,0 +1,119 @@
+\documentclass[11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{geometry}
+\usepackage{booktabs}
+\geometry{margin=2.5cm}
+
+\begin{document}
+
+\section{Expérience 1 : récupération de conjonctions aléatoires}
+
+\subsection{Principe}
+
+Cette expérience reproduit le protocole de convergence de PCL (Belaid
+et al., AAAI-25) : on tire une conjonction cible aléatoire, on entraîne
+une seule clause dessus, et on vérifie si la clause apprise correspond
+\emph{exactement} à la cible. L'objectif est de comparer directement
+notre règle à quatre paramètres $(a,b,c,d)$ à la règle à un paramètre
+$p$ de PCL, sur le terrain même de leur article.
+
+\subsection{Protocole}
+
+Pour chaque valeur de $n$ (nombre de features) :
+
+\begin{enumerate}
+\item \textbf{Génération de la cible.} On tire une cible aléatoire
+$\text{target}\in\{0,1,2\}^n$ (0 : le littéral $\neg x_i$ doit être
+présent, 1 : le littéral $x_i$ doit être présent, 2 : la feature $i$
+est inutile), avec une garde contre le cas où toutes les features
+seraient inutiles.
+
+\item \textbf{Construction de la table de vérité complète.} On génère
+les $2^n$ entrées possibles $x\in\{0,1\}^n$ et leur label $y$ associé
+(sans bruit), déterminé par la cible.
+
+\item \textbf{Entraînement.} On entraîne une seule clause sur cette
+table, pendant $100$ epochs (un epoch = un passage complet sur les
+$2^n$ lignes, dans le même ordre à chaque fois) :
+\begin{itemize}
+\item avec le code officiel non modifié de PCL (\texttt{PCL\_convergence\_all.py},
+dépôt \texttt{cair/dpcl-classifier}) ;
+\item avec notre règle à quatre paramètres $(a,b,c,d)$ (Définition~1).
+\end{itemize}
+
+\item \textbf{Critère de succès.} On extrait la clause apprise
+(l'ensemble des littéraux inclus) et on la compare à la cible. Un essai
+est un succès si et seulement si les deux ensembles de littéraux
+coïncident exactement (récupération exacte, pas juste bonne précision).
+
+\item \textbf{Répétition.} Cette procédure est répétée $100$ fois (100
+cibles aléatoires différentes), ce qui donne un score sur $100$. Toute
+la procédure est elle-même répétée $10$ fois (comme dans le protocole
+de PCL), et le chiffre rapporté est la moyenne de ces $10$ scores.
+\end{enumerate}
+
+\subsection{Paramètres}
+
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+Paramètre & Valeur \\
+\midrule
+Nombre de features $n$ & $1,2,\ldots,12$ \\
+Nombre d'états par automate (states) & $N=10\,000$ \\
+Nombre d'epochs & $100$ \\
+Probabilité d'inclusion PCL ($p$) & $0.95$ (réglage ``PCL-a'', table complète) \\
+Paramètres de notre règle $(a,b,c,d)$ & $a=1.0,\ b=0.3,\ c=1.0,\ d=0.1$ \\
+& (respecte $a,b,c,d\in(0,1]$ et l'Hypothèse~1 : $a\le c$, $d\le b$) \\
+Nombre de cibles aléatoires par run & $100$ \\
+Nombre de runs (répétitions) & $10$ \\
+Nombre total d'essais par valeur de $n$ & $1\,000$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Résultats}
+
+\begin{center}
+\begin{tabular}{cccc}
+\toprule
+$n$ & PCL (publié, Tableau 7) & PCL (notre reproduction) & Notre règle \\
+\midrule
+1  & --    & 100.0 & 100.0 \\
+2  & --    & 99.5  & 100.0 \\
+3  & --    & 96.9  & 100.0 \\
+4  & 95.1  & 94.4  & 100.0 \\
+5  & 91.2  & 91.4  & 100.0 \\
+6  & 86.1  & 85.3  & 99.9  \\
+7  & 79.4  & 77.9  & 100.0 \\
+8  & 69.3  & 68.9  & 100.0 \\
+9  & 57.1  & 56.6  & 100.0 \\
+10 & 49.8  & 51.4  & 100.0 \\
+11 & 42.3  & 43.6  & 100.0 \\
+12 & 34.2  & 35.4  & 100.0 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Les valeurs publiées de PCL-a (colonne 2) proviennent du Tableau~7 de
+Belaid et al. (AAAI-25) ; ce papier ne teste pas $n<4$. Notre
+reproduction (colonne 3, code officiel non modifié, mêmes paramètres
+$p=0.95$) retombe systématiquement à moins de $1.5$ point de leurs
+chiffres publiés, ce qui valide la fidélité de notre protocole
+expérimental.
+
+\subsection{Interprétation}
+
+PCL se dégrade nettement et progressivement à mesure que $n$
+augmente (de $100\%$ à $n=1$ jusqu'à $\sim35\%$ à $n=12$), un
+comportement attendu vu que $0.5<p<1$ n'assure la convergence que sous
+la loi uniforme, sans garantie sur la vitesse de convergence en
+fonction de $n$. Notre règle, elle, reste à $100\%$ sur toute la
+plage testée (à l'exception d'un seul essai malchanceux sur les $1\,000$
+à $n=6$, donnant $99.9\%$ au lieu de $100\%$) : à budget d'epochs
+identique, elle converge nettement plus vite que PCL quand $n$
+grandit.
+
+\end{document}

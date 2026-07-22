@@ -14,6 +14,8 @@ donnant la table repetee/bruitee avec epochs=1 -- equivalent a rebruiter
 a chaque epoch, sans modifier leur code.
 """
 
+import sys
+
 import numpy as np
 
 from experience_recuperation import generer_cible_et_donnees, formule_pcl, entrainer_clause
@@ -67,7 +69,13 @@ def main():
     p_pcl = 0.95
     a, b, c, d = 1.0, 0.3, 1.0, 0.1
     ns = [4, 6, 8, 10, 12]
-    etas = [0.05, 0.1, 0.2, 0.25, 0.30, 0.35, 0.40]
+    # Un seul niveau de bruit en argument (ex: python3 experience_bruit.py 0.1)
+    # pour lancer plusieurs terminaux en parallele, un par eta. Sans argument,
+    # on fait tous les etas les uns apres les autres comme avant.
+    if len(sys.argv) > 1:
+        etas = [float(sys.argv[1])]
+    else:
+        etas = [0.05, 0.1, 0.2, 0.25, 0.30, 0.35, 0.40]
 
     rng = np.random.default_rng(0)
     for eta in etas:
