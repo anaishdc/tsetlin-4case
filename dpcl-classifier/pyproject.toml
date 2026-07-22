@@ -1,0 +1,25 @@
+[tool.poetry]
+name = "dpcl-classifier"
+version = "0.1.0"
+description = ""
+authors = [""]
+readme = "README.md"
+packages = [{include = "dpcl_classifier"}]
+
+[tool.poetry.dependencies]
+python = ">=3.11,<3.12"
+keras = "^2.13.1"
+pandas = "^2.0.3"
+numba = "^0.57.1"
+scikit-learn = "^1.3.0"
+scipy = "^1.11.2"
+tensorflow = "^2.13.0"
+tqdm = "^4.66.1"
+loguru = "^0.7.0"
+numba-progress = "^1.1.0"
+jupyter = "^1.0.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
