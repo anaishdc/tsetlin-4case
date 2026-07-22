@@ -10,9 +10,6 @@ from numba import njit
 sys.path.insert(0, "dpcl-classifier/Main_code_AAAI25")
 from PCL_convergence_all import PCL as PCL_run  # noqa: E402
 
-# Etape 5 : le vrai TM (bibliotheque tmu, la meme que TM_convergence_all.py)
-from tmu.models.classification.vanilla_classifier import TMClassifier  # noqa: E402
-
 
 @njit(cache=True)
 def entrainer_clause(n, epochs, X, y, N, a, b, c, d):
@@ -121,40 +118,30 @@ def formule_notre_regle(n, epochs, X, y, N, a, b, c, d):
             for j in range(n) if state[j, 0] > N or state[j, 1] > N]
 
 
-def formule_tm(n, epochs, X, y, T, s):
-    """Entraine 1 clause avec le vrai TM (tmu.TMClassifier), memes reglages
-    que TM_convergence_all.py : T=3, s=1.1, boost_true_positive_feedback=0.
-    Litteraux extraits via get_ta_action (meme ordre naturel que les autres)."""
-    Xu = X.astype(np.uint32)
-    yu = y.astype(np.uint32)
-    tm = TMClassifier(2, T, s, type_i_ii_ratio=1.0, platform="CPU",
-                       boost_true_positive_feedback=0)
-    for _ in range(epochs):
-        tm.fit(Xu, yu)
-    return [k + 1 if k < n else -(k - n + 1)
-            for k in range(2 * n) if tm.get_ta_action(0, k, the_class=1, polarity=0)]
-
-
 def main():
     states, epochs, runs = 10000, 100, 100
+    nb_repetitions = 10  # comme PCL : chaque score est la moyenne de 10 runs de 100 essais
     p_pcl = 0.95  # PCL-a (papier : table complete)
-    T_tm, s_tm = 3, 1.0  # TM-a (papier : table complete)
     a, b, c, d = 1.0, 0.3, 1.0, 0.1  # a,b,c,d in (0,1], a<=c et d<=b (Hypothese H)
     ns = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
 
     rng = np.random.default_rng(0)
-    print(f"{'n':>3} {'PCL':>8} {'TM':>8} {'Notre regle':>12}   (sur {runs} runs)")
+    print(f"{'n':>3} {'PCL':>10} {'Notre regle':>14}   (moyenne sur {nb_repetitions} runs de {runs} essais)")
     for n in ns:
-        succ_pcl = succ_tm = succ_notre = 0
-        for _ in range(runs):
-            target, X, y = generer_cible_et_donnees(n, rng)
-            if formule_pcl(n, epochs, X, y, states, p_pcl) == target:
-                succ_pcl += 1
-            if formule_tm(n, epochs, X, y, T_tm, s_tm) == target:
-                succ_tm += 1
-            if formule_notre_regle(n, epochs, X, y, states, a, b, c, d) == target:
-                succ_notre += 1
-        print(f"{n:>3} {succ_pcl:>5}/{runs} {succ_tm:>5}/{runs} {succ_notre:>8}/{runs}")
+        scores_pcl = []
+        scores_notre = []
+        for _ in range(nb_repetitions):
+            succ_pcl = succ_notre = 0
+            for _ in range(runs):
+                target, X, y = generer_cible_et_donnees(n, rng)
+                if formule_pcl(n, epochs, X, y, states, p_pcl) == target:
+                    succ_pcl += 1
+                if formule_notre_regle(n, epochs, X, y, states, a, b, c, d) == target:
+                    succ_notre += 1
+            scores_pcl.append(succ_pcl)
+            scores_notre.append(succ_notre)
+        print(f"{n:>3} {np.mean(scores_pcl):>10.1f} {np.mean(scores_notre):>14.1f}"
+              f"   (scores : PCL={scores_pcl}  notre_regle={scores_notre})")
 
 
 if __name__ == "__main__":
