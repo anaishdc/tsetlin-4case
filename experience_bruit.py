@@ -67,7 +67,7 @@ def main():
     states, epochs, runs = 10000, 100, 100
     nb_repetitions = 10
     p_pcl = 0.95
-    a, b, c, d = 1.0, 0.3, 1.0, 0.1
+    a, b, c, d = 1.0, 0.1, 1.0, 0.02  # b,d abaisses : bien plus robuste au bruit a grand n, sans rien perdre sans bruit (teste empiriquement)
     ns = [4, 6, 8, 10, 12]
     # Un seul niveau de bruit en argument (ex: python3 experience_bruit.py 0.1)
     # pour lancer plusieurs terminaux en parallele, un par eta. Sans argument,
