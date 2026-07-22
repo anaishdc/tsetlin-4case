@@ -139,7 +139,7 @@ def main():
     states, epochs, runs = 10000, 100, 100
     p_pcl = 0.95  # PCL-a (papier : table complete)
     T_tm, s_tm = 3, 1.0  # TM-a (papier : table complete)
-    a, b, c, d = 1.0, 0.3, 1.0, 0.0  # a=c, d<b (Hypothese H respectee)
+    a, b, c, d = 1.0, 0.3, 1.0, 0.1  # a,b,c,d in (0,1], a<=c et d<=b (Hypothese H)
     ns = [4, 6, 8, 10, 12]
 
     rng = np.random.default_rng(0)
