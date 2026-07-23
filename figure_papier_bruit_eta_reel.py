@@ -1,9 +1,9 @@
 """ Figure Exp 2 (validation du Theoreme 3, robustesse au bruit) : axe X
 = bruit reel eta, ligne verticale = valeur exacte de mu/M, pour UNE
-cible concrete fixee (n=8, a=1.0 b=0.3 c=1.0 d=0.1 -- nos parametres
-habituels). Plus concrete/lisible que le graphe agrege sur plusieurs n
-(r=eta/eta_max) : montre directement les vrais nombres pour un exemple
-precis.
+cible concrete fixee (n=4, cible=[1,2,3,4], a=1.0 b=0.3 c=1.0 d=0.1 --
+nos parametres habituels). Plus concrete/lisible que le graphe agrege
+sur plusieurs n (r=eta/eta_max) : montre directement les vrais nombres
+pour un exemple precis, avec le seuil bien centre dans la plage testee.
 """
 
 import matplotlib
@@ -18,11 +18,9 @@ matplotlib.rcParams.update({
 })
 import matplotlib.pyplot as plt
 
-eta_max = 0.00481
-etas = [0.00481, 0.00962, 0.02404, 0.04808, 0.09615, 0.14423, 0.19231,
-        0.24038, 0.28846, 0.33654, 0.38462, 0.43269, 0.48077]
-taux = [100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0,
-        10.0, 0.0, 0.0, 0.0, 0.0]
+eta_max = 0.05288
+etas = [0.01058, 0.02644, 0.05288, 0.10577, 0.15865, 0.21154, 0.26442, 0.31731]
+taux = [100.0, 100.0, 100.0, 100.0, 100.0, 60.0, 20.0, 0.0]
 
 fig, ax = plt.subplots(figsize=(3.6, 2.9))
 ax.plot(etas, taux, marker="o", markersize=4, linewidth=1.4,
@@ -40,6 +38,6 @@ ax.spines["top"].set_visible(False)
 ax.spines["right"].set_visible(False)
 
 fig.tight_layout(pad=0.4)
-fig.savefig("figures/succes_vs_eta_reel_n8.pdf")
-fig.savefig("figures/succes_vs_eta_reel_n8.png", dpi=300)
-print("-> figures/succes_vs_eta_reel_n8.pdf")
+fig.savefig("figures/succes_vs_eta_reel_n4.pdf")
+fig.savefig("figures/succes_vs_eta_reel_n4.png", dpi=300)
+print("-> figures/succes_vs_eta_reel_n4.pdf")
