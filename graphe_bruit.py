@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt
 from experience_recuperation import generer_cible_et_donnees
 from experience_bruit import calculer_mu, construire_flux_bruite, formule_notre_regle_bruit, formule_correcte
 
-states, epochs = 10000, 100
+states, epochs = 3000, 100
 a, b, c, d = 1.0, 0.3, 1.0, 0.1
 M = max(a + b, c + d)
 ns = [4, 6, 8, 10, 12]
